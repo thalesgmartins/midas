@@ -4,49 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Midas{% endblock %}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            ink: '#021f27',
-            surface: '#062933',
-            evergreen: '#013a34',
-            deep: '#01161c',
-            marine: '#2174c4',
-            sage: '#719a72',
-            offwhite: '#f0f4f5',
-            muted: '#94a8b0',
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
-          },
-        },
-      },
-    }
-  </script>
+  <link rel="stylesheet" href="/static/css/tailwind.min.css">
+  <link rel="stylesheet" href="/static/css/materialdesignicons.min.css">
   <script src="/static/js/htmx.min.js"></script>
-  <style>
-    .htmx-indicator { display: none; }
-    .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: inline-flex; }
-    .num { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
-  </style>
 </head>
 <body class="bg-ink text-offwhite font-sans antialiased min-h-screen flex">
   <!-- Sidebar Fixa -->
   <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-60 bg-deep border-r border-white/[0.08] flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
     <div class="h-16 px-6 flex items-center gap-3 border-b border-white/[0.08]">
       <div class="w-8 h-8 rounded-lg bg-evergreen border border-white/[0.12] flex items-center justify-center">
-        <svg class="w-4 h-4 text-sage" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 17l6-6 4 4 8-8" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M17 7h4v4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <i class="mdi mdi-finance text-sage text-lg leading-none"></i>
       </div>
       <div>
         <span class="font-semibold tracking-wide text-offwhite text-base">Midas</span>
@@ -56,18 +23,16 @@
 
     <nav class="flex-1 px-3 py-5 space-y-1 text-sm">
       {% set nav_items = [
-        ('dashboard', '/', 'Dashboard', 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6'),
-        ('estatisticas', '/estatisticas', 'Estatísticas', 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'),
-        ('aporte', '/aporte', 'Novo Aporte', 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1'),
-        ('metas', '/metas', 'Metas de Alocação', 'M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4'),
-        ('importar', '/importar', 'Importar CSV', 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12'),
+        ('dashboard', '/', 'Dashboard', 'mdi-view-dashboard-outline'),
+        ('estatisticas', '/estatisticas', 'Estatísticas', 'mdi-chart-box-outline'),
+        ('aporte', '/aporte', 'Novo Aporte', 'mdi-cash-plus'),
+        ('metas', '/metas', 'Metas de Alocação', 'mdi-target'),
+        ('importar', '/importar', 'Importar CSV', 'mdi-file-upload-outline'),
       ] %}
-      {% for key, href, label, icon_path in nav_items %}
+      {% for key, href, label, icon in nav_items %}
       <a href="{{ href }}"
          class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors {{ 'bg-marine/20 text-offwhite border border-marine/40 font-medium' if active_nav == key else 'text-muted hover:text-offwhite hover:bg-white/[0.04]' }}">
-        <svg class="w-4 h-4 shrink-0 {{ 'text-marine' if active_nav == key else 'text-muted' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-          <path stroke-linecap="round" stroke-linejoin="round" d="{{ icon_path }}"/>
-        </svg>
+        <i class="mdi {{ icon }} text-lg leading-none {{ 'text-marine' if active_nav == key else 'text-muted' }}"></i>
         <span>{{ label }}</span>
       </a>
       {% endfor %}
@@ -76,9 +41,7 @@
     <div class="p-4 border-t border-white/[0.08]">
       <button hx-post="/cotacoes/atualizar" hx-target="#quote-msg" hx-indicator="#quote-spin"
               class="w-full flex items-center justify-center gap-2 bg-surface hover:bg-evergreen border border-white/[0.08] text-offwhite rounded-xl px-3 py-2 text-xs font-medium transition-colors">
-        <svg class="w-3.5 h-3.5 text-sage" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-        </svg>
+        <i class="mdi mdi-refresh text-sage text-sm leading-none"></i>
         <span>Atualizar cotações</span>
       </button>
       <div class="mt-2 min-h-[1rem] text-center">
@@ -95,14 +58,10 @@
       <div class="flex items-center gap-3 flex-1 max-w-md">
         <button type="button" onclick="document.getElementById('sidebar').classList.toggle('-translate-x-full')"
                 class="lg:hidden p-2 rounded-lg bg-surface border border-white/[0.08] text-muted hover:text-offwhite" aria-label="Menu">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
-          </svg>
+          <i class="mdi mdi-menu text-lg leading-none"></i>
         </button>
         <form action="/estatisticas" method="get" class="relative flex-1">
-          <svg class="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/>
-          </svg>
+          <i class="mdi mdi-magnify text-muted text-base leading-none absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
           <input id="global-ticker-search" name="q" value="{{ query|default('') }}" placeholder="Buscar ticker ou segmento..."
                  class="w-full bg-deep border border-white/[0.08] focus:border-marine focus:outline-none rounded-xl pl-9 pr-3 py-1.5 text-sm text-offwhite placeholder:text-muted/70 transition-colors">
         </form>
@@ -110,7 +69,7 @@
 
       <div class="flex items-center gap-3">
         <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface border border-white/[0.08] text-xs text-muted">
-          <span class="w-2 h-2 rounded-full {{ 'bg-sage' if last_quote_at else 'bg-muted/50' }}"></span>
+          <i class="mdi mdi-circle text-[8px] {{ 'text-sage' if last_quote_at else 'text-muted/50' }}"></i>
           <span>
             {% if last_quote_at %}
               Cotações: <span class="num text-offwhite">{{ last_quote_at.strftime('%d/%m %H:%M') }}</span>
