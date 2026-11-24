@@ -3,6 +3,8 @@
 from datetime import datetime
 from enum import StrEnum
 
+from sqlalchemy import Column
+from sqlalchemy import Enum as SAEnum
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -27,7 +29,14 @@ class AssetClass(SQLModel, table=True):
     name: str = Field(index=True, unique=True)
     target_pct: float = 0.0
     band_pp: float = 5.0
-    band_mode: BandMode = BandMode.PP
+    band_mode: BandMode = Field(
+        default=BandMode.PP,
+        sa_column=Column(
+            SAEnum(BandMode, values_callable=lambda enum: [member.value for member in enum]),
+            nullable=False,
+            server_default=BandMode.PP.value,
+        ),
+    )
     sort_order: int = 0
 
     assets: list["Asset"] = Relationship(back_populates="asset_class")
