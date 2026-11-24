@@ -2,6 +2,21 @@
 
 Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 
+## [0.3.0](https://github.com/thalesgmartins/midas/compare/v0.2.0...v0.3.0) (2026-11-24)
+
+
+### Features
+
+* **db:** adicionar tabela assetfundamentals e migracao 0003 ([8e21ddc](https://github.com/thalesgmartins/midas/commit/8e21ddc12b325d742828cf34d8d9a23677545e84))
+* **ui:** adicionar tela de Valuation & Proventos ([6d02aa6](https://github.com/thalesgmartins/midas/commit/6d02aa6f219a7b5c408672cb5a06e438bf5b5501))
+* **ui:** tornar prioridades dinamicas via HTMX OOB e melhorar leitura do plano de aporte ([685943e](https://github.com/thalesgmartins/midas/commit/685943e5d7ff48635f2df755165ec159e7439d89))
+* **valuation:** implementar motor multi-metodo, coleta de fundamentos e integracao no aporte ([0361c2b](https://github.com/thalesgmartins/midas/commit/0361c2bafbdddcfc168993a9ef7ea5de691d3f81))
+
+
+### Bug Fixes
+
+* **db:** persistir valores do enum band_mode e preservar logs do uvicorn ([01dd316](https://github.com/thalesgmartins/midas/commit/01dd3169b53a08ac5998578be84f2e209e9888f6))
+
 ## [0.2.0](https://github.com/thalesgmartins/midas/compare/v0.1.0...v0.2.0) (2026-11-24)
 
 
