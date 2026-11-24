@@ -1,19 +1,41 @@
 {% extends "base.html" %}
+{% block title %}Metas — Midas{% endblock %}
 {% block content %}
-<div class="bg-white rounded-xl shadow p-4 max-w-xl">
-  <h1 class="font-semibold text-lg mb-3">Metas por classe</h1>
-  {% if request.query_params.get('ok') %}<p class="text-green-600 text-sm mb-2">Metas salvas.</p>{% endif %}
-  <form method="post" class="space-y-2">
-    <div class="grid grid-cols-3 gap-2 text-sm text-slate-500"><span>Classe</span><span>Meta (%)</span><span>Banda (± p.p.)</span></div>
+<div class="bg-surface border border-white/[0.08] rounded-2xl p-6 max-w-2xl">
+  <h1 class="font-semibold text-xl text-offwhite mb-1">Metas de Alocação</h1>
+  <p class="text-xs text-muted mb-5">
+    Escolha entre banda fixa em pontos percentuais (<span class="num">± p.p.</span>) ou banda relativa <span class="text-offwhite">Metade / Dobro</span> (mínimo metade da meta, máximo o dobro).
+  </p>
+  {% if request.query_params.get('ok') %}
+    <div class="mb-4 px-3.5 py-2 rounded-xl bg-sage/15 border border-sage/30 text-sage text-xs font-medium">Metas salvas com sucesso.</div>
+  {% endif %}
+  <form method="post" class="space-y-3">
+    <div class="grid grid-cols-12 gap-3 text-[11px] uppercase tracking-wider text-muted pb-1 border-b border-white/[0.08]">
+      <span class="col-span-3">Classe</span>
+      <span class="col-span-2">Meta (%)</span>
+      <span class="col-span-4">Regra da Banda</span>
+      <span class="col-span-3">Banda (± p.p.)</span>
+    </div>
     {% for c in classes %}
-    <div class="grid grid-cols-3 gap-2 items-center">
-      <span>{{ c.name }}</span>
-      <input name="target_{{ c.id }}" value="{{ '%g'|format(c.target_pct) }}" class="border rounded px-2 py-1">
-      <input name="band_{{ c.id }}" value="{{ '%g'|format(c.band_pp) }}" class="border rounded px-2 py-1">
+    <div class="grid grid-cols-12 gap-3 items-center py-1">
+      <span class="col-span-3 text-sm font-medium text-offwhite">{{ c.name }}</span>
+      <input name="target_{{ c.id }}" value="{{ '%g'|format(c.target_pct) }}"
+             class="col-span-2 num bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-xl px-3 py-2 text-sm text-offwhite">
+      <select name="mode_{{ c.id }}"
+              class="col-span-4 bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-xl px-3 py-2 text-xs text-offwhite">
+        <option value="pp" {{ 'selected' if c.band_mode.value == 'pp' else '' }}>Fixa (± p.p.)</option>
+        <option value="half_double" {{ 'selected' if c.band_mode.value == 'half_double' else '' }}>Metade / Dobro (½× a 2×)</option>
+      </select>
+      <input name="band_{{ c.id }}" value="{{ '%g'|format(c.band_pp) }}"
+             class="col-span-3 num bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-xl px-3 py-2 text-sm text-offwhite">
     </div>
     {% endfor %}
-    <p class="text-xs text-slate-500">Soma das metas: {{ classes|sum(attribute='target_pct') }}%</p>
-    <button class="bg-slate-900 text-white rounded-lg px-4 py-1.5">Salvar</button>
+    <div class="pt-3 flex items-center justify-between border-t border-white/[0.08]">
+      <p class="text-xs text-muted">Soma das metas: <span class="num font-semibold text-offwhite">{{ classes|sum(attribute='target_pct') }}%</span></p>
+      <button class="bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-5 py-2 text-sm font-medium transition-colors">
+        Salvar metas
+      </button>
+    </div>
   </form>
 </div>
 {% endblock %}

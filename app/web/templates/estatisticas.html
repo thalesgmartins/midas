@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Estatísticas — Midas{% endblock %}
+{% block content %}
+{% if not s.groups or s.total == 0 %}
+  <div class="bg-surface border border-white/[0.08] rounded-2xl p-8 text-center max-w-lg mx-auto mt-10">
+    <h1 class="text-lg font-semibold text-offwhite mb-2">Sem dados para analisar</h1>
+    <p class="text-sm text-muted mb-5">Importe sua carteira para visualizar KPIs, desvios e posições.</p>
+    <a href="/importar" class="inline-flex bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-5 py-2.5 text-sm font-medium">Importar CSV</a>
+  </div>
+{% else %}
+  {% set rv_var = (s.variable_value / s.variable_cost - 1) * 100 if s.variable_cost else 0 %}
+
+  <!-- Linha de KPIs (4 colunas) -->
+  <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="text-xs text-muted">Patrimônio Total</div>
+      <div class="num text-2xl font-semibold text-offwhite mt-2">{{ s.total|brl }}</div>
+      <div class="mt-2 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full {{ 'bg-sage/15 text-sage' if rv_var >= 0 else 'bg-rose-500/15 text-rose-400' }}">
+        <span class="num">{{ '%+.1f'|format(rv_var)|replace('.', ',') }}%</span>
+        <span>em renda variável</span>
+      </div>
+    </div>
+
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="text-xs text-muted">Renda Variável (Custo → Mercado)</div>
+      <div class="num text-lg font-semibold text-offwhite mt-2">{{ s.variable_value|brl }}</div>
+      <div class="text-xs text-muted mt-1.5">Custo: <span class="num text-offwhite/80">{{ s.variable_cost|brl }}</span></div>
+    </div>
+
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="text-xs text-muted">Aderência às Metas</div>
+      <div class="num text-2xl font-semibold {{ 'text-sage' if s.adherence_pct >= 80 else 'text-marine' }} mt-2">{{ s.adherence_pct|pct }}</div>
+      <div class="w-full h-1.5 bg-deep rounded-full mt-3 overflow-hidden">
+        <div class="h-full rounded-full {{ 'bg-sage' if s.adherence_pct >= 80 else 'bg-marine' }}" style="width: {{ [s.adherence_pct, 100]|min }}%"></div>
+      </div>
+    </div>
+
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="text-xs text-muted">Ativos na Carteira</div>
+      <div class="num text-2xl font-semibold text-offwhite mt-2">{{ s.asset_count }}</div>
+      <div class="text-xs text-muted mt-2">
+        {% if s.review_count %}
+          <span class="text-amber-400">{{ s.review_count }} em revisão</span> · {{ s.asset_count - s.review_count }} ativos
+        {% else %}
+          <span class="text-sage">Todos ativos</span> no motor
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Linha de Visualização (40 / 60) -->
+  <section class="grid grid-cols-1 xl:grid-cols-12 gap-5 mb-6">
+    <!-- Esquerda 40%: Mapa de Alocação / Desvio por Classe -->
+    <div class="xl:col-span-5 bg-surface border border-white/[0.08] rounded-2xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-offwhite">Alocação vs. Meta e Banda</h2>
+        <a href="/metas" class="text-xs text-marine hover:underline">Configurar</a>
+      </div>
+      <div class="space-y-5">
+        {% for g in s.groups %}
+        <div>
+          <div class="flex justify-between items-baseline text-xs mb-1.5">
+            <span class="font-medium text-offwhite">{{ g.asset_class.name }}</span>
+            <span class="num text-muted">
+              <span class="text-offwhite font-medium">{{ g.pct|pct }}</span>
+              / {{ g.asset_class.target_pct|pct(0) }}
+              <span class="ml-1.5 {{ 'text-sage' if g.state == 'ok' else ('text-amber-400' if g.state == 'acima' else 'text-marine') }}">
+                ({{ '%+.1f'|format(g.diff)|replace('.', ',') }}pp)
+              </span>
+            </span>
+          </div>
+          <div class="relative h-3 bg-deep rounded-full">
+            <!-- Faixa da banda -->
+            <div class="absolute h-3 bg-white/[0.10] rounded-full"
+                 style="left: {{ g.band_low }}%; width: {{ [g.band_high - g.band_low, 100 - g.band_low]|min }}%"></div>
+            <!-- Barra atual -->
+            <div class="absolute h-3 rounded-full {{ 'bg-sage' if g.state == 'ok' else ('bg-amber-400/80' if g.state == 'acima' else 'bg-marine') }}"
+                 style="width: {{ [g.pct, 100]|min }}%"></div>
+            <!-- Marcador da meta -->
+            <div class="absolute h-5 -top-1 w-0.5 bg-offwhite/80" style="left: {{ g.asset_class.target_pct }}%"></div>
+          </div>
+          <div class="flex justify-between text-[11px] text-muted mt-1">
+            <span>Banda: <span class="num">{{ g.band_low|pct }}</span> a <span class="num">{{ g.band_high|pct }}</span></span>
+            <span class="num">{{ g.value|brl }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Direita 60%: Diversificação por Segmento -->
+    <div class="xl:col-span-7 bg-surface border border-white/[0.08] rounded-2xl p-6">
+      <h2 class="text-sm font-semibold text-offwhite mb-4">Diversificação por Segmento</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for cname, segs in s.segments.items() if cname in ['Ações', 'FIIs'] %}
+        <div>
+          <h3 class="text-xs uppercase tracking-wider text-muted mb-3">{{ cname }}</h3>
+          <div class="space-y-2.5">
+            {% for seg, val, p in segs %}
+            <div>
+              <div class="flex justify-between text-xs mb-1 gap-2">
+                <span class="text-offwhite truncate" title="{{ seg }}">{{ seg }}</span>
+                <span class="num text-muted shrink-0">{{ p|pct(0) }}</span>
+              </div>
+              <div class="h-1.5 bg-deep rounded-full overflow-hidden">
+                <div class="h-full rounded-full {{ 'bg-marine' if cname == 'Ações' else 'bg-sage' }}" style="width: {{ p }}%"></div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Tabela Detalhada da Carteira -->
+  <section class="space-y-5">
+    {% for g in s.groups if g.rows %}
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-6 overflow-x-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-offwhite">
+          {{ g.asset_class.name }}
+          <span class="num text-muted font-normal ml-2">{{ g.value|brl }} · {{ g.pct|pct }}</span>
+        </h2>
+      </div>
+      <table class="w-full text-sm">
+        <thead class="text-[11px] uppercase tracking-wider text-muted border-b border-white/[0.08]">
+          <tr>
+            <th class="py-2.5 text-left font-medium">Ativo</th>
+            <th class="py-2.5 text-left font-medium">Segmento</th>
+            <th class="py-2.5 text-right font-medium">Qtd</th>
+            <th class="py-2.5 text-right font-medium">PM</th>
+            <th class="py-2.5 text-right font-medium">Atual</th>
+            <th class="py-2.5 text-right font-medium">Var.</th>
+            <th class="py-2.5 text-right font-medium">Saldo</th>
+            <th class="py-2.5 text-right font-medium">% Cart.</th>
+            <th class="py-2.5 text-right font-medium">% Ideal</th>
+            <th class="py-2.5 text-right font-medium">Peso</th>
+            <th class="py-2.5 text-right font-medium">Preço Teto</th>
+            <th class="py-2.5 pl-3 text-left font-medium">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-white/[0.06]">
+        {% for r in g.rows %}{% set a = r.asset %}
+          <tr data-search="{{ (a.ticker ~ ' ' ~ a.segment ~ ' ' ~ g.asset_class.name)|lower }}"
+              class="asset-row hover:bg-white/[0.03] transition-colors {{ 'bg-amber-500/[0.06]' if a.status.value == 'em_revisao' else '' }}">
+            <td class="py-2.5 pr-3 font-semibold text-offwhite">{{ a.ticker }}</td>
+            <td class="py-2.5 pr-2">
+              <input name="segment" value="{{ a.segment }}" hx-post="/ativos/{{ a.id }}" hx-trigger="change"
+                     class="w-44 bg-transparent hover:bg-deep/60 focus:bg-deep border border-transparent focus:border-marine focus:outline-none rounded-lg px-2 py-1 text-xs text-muted focus:text-offwhite transition-colors">
+            </td>
+            <td class="py-2.5 text-right num text-offwhite">{{ a.quantity|int if not a.divisible else '—' }}</td>
+            <td class="py-2.5 text-right num text-muted">{{ a.avg_price|brl if not a.divisible else '—' }}</td>
+            <td class="py-2.5 text-right num text-offwhite">{{ a.current_price|brl if not a.divisible else '—' }}</td>
+            <td class="py-2.5 text-right num {{ 'text-rose-400' if a.variation_pct and a.variation_pct < 0 else 'text-sage' }}">{{ a.variation_pct|pct }}</td>
+            <td class="py-2.5 text-right num font-medium text-offwhite">{{ a.value|brl }}</td>
+            <td class="py-2.5 text-right num text-offwhite">{{ r.pct|pct }}</td>
+            <td class="py-2.5 text-right num text-muted">{{ r.ideal|pct }}</td>
+            <td class="py-2.5 pl-2 text-right">
+              <input name="weight" value="{{ '%g'|format(a.weight) }}" hx-post="/ativos/{{ a.id }}" hx-trigger="change"
+                     class="num w-14 text-right bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-lg px-2 py-1 text-xs text-offwhite">
+            </td>
+            <td class="py-2.5 pl-2 text-right">
+              {% if not a.divisible %}
+              <input name="price_ceiling" value="{{ '%.2f'|format(a.price_ceiling) if a.price_ceiling else '' }}" placeholder="—"
+                     hx-post="/ativos/{{ a.id }}" hx-trigger="change"
+                     class="num w-20 text-right bg-deep border {{ 'border-rose-400/70 text-rose-400' if a.price_ceiling and a.current_price > a.price_ceiling else 'border-white/[0.10] text-offwhite' }} focus:border-marine focus:outline-none rounded-lg px-2 py-1 text-xs">
+              {% endif %}
+            </td>
+            <td class="py-2.5 pl-3">
+              <select name="status" hx-post="/ativos/{{ a.id }}" hx-trigger="change"
+                      class="bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-lg px-2 py-1 text-xs text-offwhite">
+                {% for st in statuses %}
+                <option value="{{ st.value }}" {{ 'selected' if a.status == st else '' }}>{{ 'Ativo' if st.value == 'ativo' else 'Em revisão' }}</option>
+                {% endfor %}
+              </select>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+    <p class="text-xs text-muted">Peso = participação relativa dentro da classe (0 = não aportar). "Em revisão" congela o ativo: sem aporte e sem sugestão de venda.</p>
+  </section>
+
+  <script>
+    (function () {
+      const input = document.getElementById('global-ticker-search');
+      if (!input) return;
+      const filter = () => {
+        const term = input.value.trim().toLowerCase();
+        document.querySelectorAll('.asset-row').forEach((row) => {
+          row.style.display = !term || row.dataset.search.includes(term) ? '' : 'none';
+        });
+      };
+      input.addEventListener('input', filter);
+      if (input.value) filter();
+    })();
+  </script>
+{% endif %}
+{% endblock %}

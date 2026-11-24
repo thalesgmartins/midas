@@ -11,7 +11,7 @@ SAMPLE_CSV = Path(__file__).resolve().parent.parent / "data" / "carteira_exemplo
 
 def test_rotas_principais_respondem_200() -> None:
     with TestClient(app) as client:
-        for url in ("/", "/aporte", "/metas", "/importar"):
+        for url in ("/", "/estatisticas", "/aporte", "/metas", "/importar"):
             response = client.get(url)
             assert response.status_code == 200
 
@@ -26,10 +26,10 @@ def test_importar_e_simular_aporte() -> None:
         assert upload.status_code == 200
         assert "7 ativos importados/atualizados." in upload.text
 
-        dash = client.get("/")
-        assert "TAEE11" in dash.text
-        assert "IVVB11" in dash.text
+        stats = client.get("/estatisticas")
+        assert "TAEE11" in stats.text
+        assert "IVVB11" in stats.text
 
         sim = client.post("/aporte/simular", data={"valor": "400"})
         assert sim.status_code == 200
-        assert "O que comprar com R$ 400,00" in sim.text
+        assert "R$ 400,00" in sim.text

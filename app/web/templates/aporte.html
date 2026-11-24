@@ -1,17 +1,21 @@
 {% extends "base.html" %}
+{% block title %}Novo Aporte — Midas{% endblock %}
 {% block content %}
-<div class="bg-white rounded-xl shadow p-4 mb-6">
-  <h1 class="font-semibold text-lg mb-3">Simular aporte</h1>
-  <form hx-post="/aporte/simular" hx-target="#plan" class="flex gap-2 items-end">
-    <label class="text-sm">Valor (R$)
-      <input name="valor" value="400" class="block border rounded px-2 py-1 w-40">
-    </label>
-    <button class="bg-slate-900 text-white rounded-lg px-4 py-1.5">Calcular</button>
-  </form>
-  <p class="text-xs text-slate-500 mt-2">
-    Regras: ativos em revisão, com peso 0 ou acima do preço teto ficam de fora · só recebem aporte classes abaixo da banda
-    (ou abaixo da meta, se nenhuma estiver fora) · compra cota a cota minimizando o desvio das metas · preço médio não influencia.
+<div class="bg-evergreen border border-white/[0.08] rounded-2xl p-6 mb-6">
+  <h1 class="font-semibold text-xl text-offwhite mb-1">Simulador de Aporte</h1>
+  <p class="text-xs text-muted mb-4">
+    Ativos em revisão, com peso 0 ou acima do preço teto ficam de fora · prioriza classes abaixo da banda · compra cota a cota minimizando desvio · preço médio não influencia.
   </p>
+  <form hx-post="/aporte/simular" hx-target="#plan" class="flex flex-wrap gap-3 items-end">
+    <label class="block">
+      <span class="text-xs text-muted block mb-1.5">Valor (R$)</span>
+      <input name="valor" value="{{ default_amount|default(400) }}"
+             class="num w-44 bg-deep border border-white/[0.12] focus:border-marine focus:outline-none rounded-xl px-3.5 py-2.5 text-offwhite">
+    </label>
+    <button class="bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-5 py-2.5 text-sm font-medium transition-colors">
+      Calcular
+    </button>
+  </form>
 </div>
 <div id="plan"></div>
 {% endblock %}
