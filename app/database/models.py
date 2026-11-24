@@ -13,6 +13,13 @@ class AssetStatus(StrEnum):
     EM_REVISAO = "em_revisao"  # tese congelada: sem aporte e sem sugestão de venda
 
 
+class BandMode(StrEnum):
+    """Regra de banda de desbalanceamento de uma classe."""
+
+    PP = "pp"  # faixa fixa em pontos percentuais: [meta - banda, meta + banda]
+    HALF_DOUBLE = "half_double"  # regra metade/dobro: [meta / 2, meta * 2]
+
+
 class AssetClass(SQLModel, table=True):
     """Classe de ativo (Ações, FIIs, ETFs, Renda Fixa...) com meta e banda de tolerância."""
 
@@ -20,6 +27,7 @@ class AssetClass(SQLModel, table=True):
     name: str = Field(index=True, unique=True)
     target_pct: float = 0.0
     band_pp: float = 5.0
+    band_mode: BandMode = BandMode.PP
     sort_order: int = 0
 
     assets: list["Asset"] = Relationship(back_populates="asset_class")

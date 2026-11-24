@@ -4,8 +4,9 @@ Regras, em ordem:
 
 1. Ativos "em revisão", com peso 0 ou acima do preço teto ficam de fora; a meta
    deles é redistribuída entre os demais da mesma classe.
-2. Só recebem aporte as classes abaixo da banda de tolerância. Se nenhuma estiver
-   fora da banda, recebem as que estão abaixo da meta.
+2. Só recebem aporte as classes abaixo da banda de tolerância (em pontos percentuais
+   ``± p.p.`` ou relativa ``metade/dobro``). Se nenhuma estiver fora da banda,
+   recebem as que estão abaixo da meta.
 3. A compra é feita cota a cota, sempre escolhendo a compra que mais reduz o desvio
    quadrático em relação às metas. Comprar 1 cota de preço ``p`` num ativo com
    déficit ``d`` reduz o erro em ``p * (2d - p)``, logo só compra se ``d > p / 2``.
@@ -26,6 +27,7 @@ class ClassInput:
     name: str
     target_pct: float
     band_pp: float
+    band_mode: str = "pp"
 
 
 @dataclass
@@ -51,6 +53,9 @@ class ClassReport:
     current_pct: float
     target_pct: float
     band_pp: float
+    band_mode: str
+    band_low: float
+    band_high: float
     target_value_after: float
     deficit_after: float
     eligible: bool = False
@@ -100,6 +105,19 @@ def format_pct(value: float, digits: int = 1) -> str:
     return f"{value:.{digits}f}".replace(".", ",")
 
 
+def band_bounds(target_pct: float, band_pp: float, band_mode: str = "pp") -> tuple[float, float]:
+    """Retorna os limites inferior e superior (em %) da banda de tolerância."""
+    if band_mode == "half_double":
+        return max(0.0, target_pct / 2), min(100.0, target_pct * 2)
+    return max(0.0, target_pct - band_pp), min(100.0, target_pct + band_pp)
+
+
+def _band_label(band_pp: float, band_mode: str, low: float, high: float) -> str:
+    if band_mode == "half_double":
+        return f"banda {format_pct(low)}%–{format_pct(high)}% (metade/dobro)"
+    return f"banda ±{band_pp:.0f} p.p."
+
+
 def _class_reports(
     classes: list[ClassInput], assets: list[AssetInput], amount: float
 ) -> dict[str, ClassReport]:
@@ -112,17 +130,21 @@ def _class_reports(
     reports = {}
     for c in classes:
         target_after = total_after * c.target_pct / 100
+        low, high = band_bounds(c.target_pct, c.band_pp, c.band_mode)
         reports[c.name] = ClassReport(
             name=c.name,
             value=values[c.name],
             current_pct=values[c.name] / total * 100 if total else 0.0,
             target_pct=c.target_pct,
             band_pp=c.band_pp,
+            band_mode=c.band_mode,
+            band_low=low,
+            band_high=high,
             target_value_after=target_after,
             deficit_after=target_after - values[c.name],
         )
 
-    out_of_band = {r.name for r in reports.values() if r.current_pct < r.target_pct - r.band_pp}
+    out_of_band = {r.name for r in reports.values() if r.current_pct < r.band_low}
     if out_of_band:
         eligible, rule = out_of_band, "abaixo da banda"
     else:
@@ -130,14 +152,16 @@ def _class_reports(
         rule = "abaixo da meta (nenhuma classe fora da banda)"
 
     for r in reports.values():
-        prefix = f"{format_pct(r.current_pct)}% vs meta {r.target_pct:.0f}% → "
+        prefix = f"{format_pct(r.current_pct)}% vs meta {r.target_pct:.0f}% -> "
         if r.name in eligible:
             r.eligible = True
             r.reason = prefix + rule
         elif r.current_pct > r.target_pct:
             r.reason = prefix + "acima da meta"
         else:
-            r.reason = prefix + f"dentro da banda ±{r.band_pp:.0f} p.p."
+            r.reason = (
+                prefix + f"dentro da {_band_label(r.band_pp, r.band_mode, r.band_low, r.band_high)}"
+            )
     return reports
 
 
@@ -185,12 +209,6 @@ def plan_contribution(amount: float, classes: list[ClassInput], assets: list[Ass
 
     Returns:
         Plano com compras, justificativas e ativos excluídos.
-
-    Example:
-        >>> classes = [ClassInput("Ações", 50, 5), ClassInput("FIIs", 50, 5)]
-        >>> assets = [AssetInput("A", "Ações", 100, 10), AssetInput("F", "FIIs", 300, 10)]
-        >>> plan_contribution(100, classes, assets).buys[0].ticker
-        'A'
     """
     reports = _class_reports(classes, assets, amount)
     eligible = {name for name, r in reports.items() if r.eligible}
@@ -226,7 +244,7 @@ def plan_contribution(amount: float, classes: list[ClassInput], assets: list[Ass
 
     for asset in candidates:
         if asset.class_name not in eligible and asset.ticker not in buys:
-            state = reports[asset.class_name].reason.split("→ ")[-1]
+            state = reports[asset.class_name].reason.split("-> ")[-1]
             excluded.append(Excluded(asset.ticker, f"Classe {asset.class_name}: {state}"))
 
     for buy in buys.values():

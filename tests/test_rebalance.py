@@ -66,3 +66,17 @@ def test_preco_teto_bloqueia() -> None:
     plan = plan_contribution(400, CLASSES, make_portfolio(ceilings={"BBSE3": 30.0}))
     assert "BBSE3" not in by_ticker(plan)
     assert any(e.ticker == "BBSE3" and "teto" in e.reason for e in plan.excluded)
+
+
+def test_banda_metade_dobro() -> None:
+    classes = [
+        ClassInput(n, 25.0, 5.0, band_mode="half_double")
+        for n in ("Ações", "FIIs", "ETFs", "Renda Fixa")
+    ]
+    plan = plan_contribution(400, classes, make_portfolio())
+    # Meta 25% -> banda 12,5% a 50%: Ações (16,9%) fica dentro; só ETFs (4,3%) abaixo.
+    by_class = {c.name: c for c in plan.classes}
+    assert by_class["ETFs"].eligible is True
+    assert by_class["Ações"].eligible is False
+    assert by_class["ETFs"].band_low == 12.5
+    assert by_class["ETFs"].band_high == 50.0
