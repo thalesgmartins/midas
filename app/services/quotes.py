@@ -1,7 +1,7 @@
 """Atualização de cotações (fechamento mais recente) via yfinance."""
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlmodel import Session, select
 
@@ -37,7 +37,7 @@ def update_quotes(session: Session) -> tuple[int, list[str]]:
             logger.error("Sem cotação para %s", asset.ticker)
             failed.append(asset.ticker)
             continue
-        asset.price_updated_at = datetime.now()
+        asset.price_updated_at = datetime.now(UTC)
         session.add(asset)
         updated += 1
     session.commit()
