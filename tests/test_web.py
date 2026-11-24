@@ -11,7 +11,7 @@ SAMPLE_CSV = Path(__file__).resolve().parent.parent / "data" / "carteira_exemplo
 
 def test_rotas_principais_respondem_200() -> None:
     with TestClient(app) as client:
-        for url in ("/", "/estatisticas", "/aporte", "/metas", "/importar"):
+        for url in ("/", "/estatisticas", "/valuation", "/aporte", "/metas", "/importar"):
             response = client.get(url)
             assert response.status_code == 200
 

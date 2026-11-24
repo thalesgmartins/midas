@@ -63,6 +63,39 @@ def estatisticas_page(request: Request, session: SessionDep, q: str = "") -> HTM
     return templates.TemplateResponse(request, "estatisticas.html", context)
 
 
+@router.get("/valuation", response_class=HTMLResponse)
+def valuation_page(request: Request, session: SessionDep) -> HTMLResponse:
+    """Valuation multi-método (Graham, Bazin, Lynch/PEG, FIIs) e proventos."""
+    ensure_classes(session)
+    summary = portfolio.summary(session)
+    report = portfolio.valuation_report(session)
+    context = {
+        "active_nav": "valuation",
+        "v": report,
+        "last_quote_at": summary.last_quote_at,
+    }
+    return templates.TemplateResponse(request, "valuation.html", context)
+
+
+@router.post("/valuation/atualizar", response_class=HTMLResponse)
+def atualizar_fundamentos(session: SessionDep) -> HTMLResponse:
+    """Coleta fundamentos e histórico de dividendos dos ativos da carteira."""
+    from app.services.fundamentals import update_fundamentals
+
+    try:
+        updated, failed = update_fundamentals(session)
+    except Exception as exc:
+        logger.exception("Falha ao atualizar fundamentos")
+        return HTMLResponse(f'<span class="text-xs text-rose-400">Erro: {exc}</span>')
+    msg = f"{updated} ativos atualizados."
+    if failed:
+        msg += f" Falharam: {', '.join(failed)}"
+    return HTMLResponse(
+        f'<span class="text-xs text-sage">{msg}</span>',
+        headers={"HX-Refresh": "true"},
+    )
+
+
 @router.get("/aporte", response_class=HTMLResponse)
 def aporte_page(request: Request, session: SessionDep) -> HTMLResponse:
     """Página dedicada de simulação de aporte."""

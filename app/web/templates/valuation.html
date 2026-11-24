@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Valuation & Proventos — Midas{% endblock %}
+{% block content %}
+  <!-- Cabeçalho + Ação de Coleta -->
+  <section class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-xl font-semibold text-offwhite flex items-center gap-2">
+        <i class="mdi mdi-scale-balance text-sage"></i>
+        <span>Valuation Multi-Método & Proventos</span>
+      </h1>
+      <p class="text-xs text-muted mt-1">
+        Preço teto consenso (mediana) alimenta automaticamente o motor de aporte quando não há teto manual definido.
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="fund-spin" class="htmx-indicator text-xs text-muted">Coletando fundamentos e dividendos...</span>
+      <div id="fund-msg"></div>
+      <button hx-post="/valuation/atualizar" hx-target="#fund-msg" hx-indicator="#fund-spin"
+              class="inline-flex items-center gap-2 bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
+        <i class="mdi mdi-cloud-download-outline text-base leading-none"></i>
+        <span>Atualizar fundamentos</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- 4 KPIs de Renda e Margem -->
+  <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="text-xs text-muted">Renda Mensal Estimada</div>
+      <div class="num text-2xl font-semibold text-sage mt-2">{{ v.est_monthly_income|brl }}</div>
+      <div class="text-xs text-muted mt-1.5">Anual (12m): <span class="num text-offwhite">{{ v.est_annual_income|brl }}</span></div>
+    </div>
+
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="text-xs text-muted">Dividend Yield Médio (RV)</div>
+      <div class="num text-2xl font-semibold text-offwhite mt-2">{{ v.weighted_dy_pct|pct(2) }}</div>
+      <div class="text-xs text-muted mt-1.5">Sobre valor de mercado atual</div>
+    </div>
+
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="text-xs text-muted">Yield on Cost Médio (RV)</div>
+      <div class="num text-2xl font-semibold text-marine mt-2">{{ v.weighted_yoc_pct|pct(2) }}</div>
+      <div class="text-xs text-muted mt-1.5">Sobre seu custo de aquisição</div>
+    </div>
+
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="text-xs text-muted">Abaixo do Preço Teto</div>
+      <div class="num text-2xl font-semibold text-offwhite mt-2">
+        {{ v.opportunity_count }} <span class="text-base text-muted font-normal">/ {{ v.evaluated_count }}</span>
+      </div>
+      <div class="text-xs text-muted mt-1.5">
+        {% if v.last_updated_at %}
+          Atualizado em <span class="num text-offwhite/80">{{ v.last_updated_at.strftime('%d/%m %H:%M') }}</span>
+        {% else %}
+          Clique em "Atualizar fundamentos"
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Tabela de Ações: Graham, Bazin, Lynch/PEG -->
+  {% if v.stocks %}
+  <section class="bg-surface border border-white/[0.08] rounded-2xl p-6 mb-6 overflow-x-auto">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+      <h2 class="text-sm font-semibold text-offwhite flex items-center gap-2">
+        <i class="mdi mdi-domain text-marine"></i>
+        <span>Ações — Graham · Bazin (6%) · Peter Lynch (PEG)</span>
+      </h2>
+      <span class="text-[11px] text-muted">Bazin usa o menor dividendo entre 12m e média 5a</span>
+    </div>
+    <table class="w-full text-sm">
+      <thead class="text-[11px] uppercase tracking-wider text-muted border-b border-white/[0.08]">
+        <tr>
+          <th class="py-2.5 text-left font-medium">Ativo</th>
+          <th class="py-2.5 text-right font-medium">Atual</th>
+          <th class="py-2.5 text-right font-medium">Graham</th>
+          <th class="py-2.5 text-right font-medium">Bazin</th>
+          <th class="py-2.5 text-right font-medium">Lynch</th>
+          <th class="py-2.5 text-right font-medium">PEG</th>
+          <th class="py-2.5 text-right font-medium">Consenso</th>
+          <th class="py-2.5 text-right font-medium">Margem</th>
+          <th class="py-2.5 text-right font-medium">DY / YoC</th>
+          <th class="py-2.5 text-right font-medium">Renda/mês</th>
+          <th class="py-2.5 pl-4 text-left font-medium">Sinal</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-white/[0.06]">
+        {% for r in v.stocks %}
+        <tr class="hover:bg-white/[0.03] transition-colors">
+          <td class="py-3 pr-3 font-semibold text-offwhite">
+            {{ r.ticker }}
+            {% if r.using_manual_ceiling %}
+              <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-marine/20 text-marine font-normal">manual</span>
+            {% endif %}
+          </td>
+          <td class="py-3 text-right num text-offwhite">{{ r.current_price|brl }}</td>
+          <td class="py-3 text-right num text-muted">{{ r.graham|brl }}</td>
+          <td class="py-3 text-right num text-muted">{{ r.bazin|brl }}</td>
+          <td class="py-3 text-right num text-muted">{{ r.lynch|brl }}</td>
+          <td class="py-3 text-right num {{ 'text-sage' if r.peg and r.peg <= 1 else 'text-muted' }}">{{ '%.2f'|format(r.peg)|replace('.', ',') if r.peg else '—' }}</td>
+          <td class="py-3 text-right num font-semibold text-offwhite">{{ r.effective_ceiling|brl }}</td>
+          <td class="py-3 text-right num font-medium {{ 'text-sage' if r.margin_of_safety_pct and r.margin_of_safety_pct >= 0 else 'text-rose-400' }}">
+            {{ ('%+.1f%%'|format(r.margin_of_safety_pct)|replace('.', ',')) if r.margin_of_safety_pct is not none else '—' }}
+          </td>
+          <td class="py-3 text-right num text-xs">
+            <span class="text-offwhite">{{ r.dy_pct|pct(1) }}</span>
+            <span class="text-muted"> / {{ r.yoc_pct|pct(1) }}</span>
+          </td>
+          <td class="py-3 text-right num text-sage">{{ r.est_monthly_income|brl }}</td>
+          <td class="py-3 pl-4">
+            {% if r.status == 'barato' %}
+              <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-sage/15 text-sage font-medium">Barato</span>
+            {% elif r.status == 'justo' %}
+              <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-marine/20 text-marine font-medium">Justo</span>
+            {% elif r.status == 'caro' %}
+              <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-400 font-medium">Acima do teto</span>
+            {% else %}
+              <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-white/[0.06] text-muted">Sem dados</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+
+  <!-- Tabela de FIIs: P/VP + Yield Alvo -->
+  {% if v.fiis %}
+  <section class="bg-surface border border-white/[0.08] rounded-2xl p-6 mb-6 overflow-x-auto">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+      <h2 class="text-sm font-semibold text-offwhite flex items-center gap-2">
+        <i class="mdi mdi-office-building-outline text-sage"></i>
+        <span>FIIs — Valor Patrimonial (P/VP = 1) · Yield Alvo (11%)</span>
+      </h2>
+    </div>
+    <table class="w-full text-sm">
+      <thead class="text-[11px] uppercase tracking-wider text-muted border-b border-white/[0.08]">
+        <tr>
+          <th class="py-2.5 text-left font-medium">Fundo</th>
+          <th class="py-2.5 text-right font-medium">Atual</th>
+          <th class="py-2.5 text-right font-medium">P/VP</th>
+          <th class="py-2.5 text-right font-medium">Patrimonial</th>
+          <th class="py-2.5 text-right font-medium">Teto Yield</th>
+          <th class="py-2.5 text-right font-medium">Consenso</th>
+          <th class="py-2.5 text-right font-medium">Margem</th>
+          <th class="py-2.5 text-right font-medium">DY / YoC</th>
+          <th class="py-2.5 text-right font-medium">Renda/mês</th>
+          <th class="py-2.5 pl-4 text-left font-medium">Sinal</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-white/[0.06]">
+        {% for r in v.fiis %}
+        <tr class="hover:bg-white/[0.03] transition-colors">
+          <td class="py-3 pr-3 font-semibold text-offwhite">
+            {{ r.ticker }}
+            {% if r.using_manual_ceiling %}
+              <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-marine/20 text-marine font-normal">manual</span>
+            {% endif %}
+          </td>
+          <td class="py-3 text-right num text-offwhite">{{ r.current_price|brl }}</td>
+          <td class="py-3 text-right num {{ 'text-sage' if r.pvp and r.pvp <= 1 else 'text-amber-400' }}">{{ '%.2f'|format(r.pvp)|replace('.', ',') if r.pvp else '—' }}</td>
+          <td class="py-3 text-right num text-muted">{{ r.fii_pvp_fair|brl }}</td>
+          <td class="py-3 text-right num text-muted">{{ r.fii_yield_ceiling|brl }}</td>
+          <td class="py-3 text-right num font-semibold text-offwhite">{{ r.effective_ceiling|brl }}</td>
+          <td class="py-3 text-right num font-medium {{ 'text-sage' if r.margin_of_safety_pct and r.margin_of_safety_pct >= 0 else 'text-rose-400' }}">
+            {{ ('%+.1f%%'|format(r.margin_of_safety_pct)|replace('.', ',')) if r.margin_of_safety_pct is not none else '—' }}
+          </td>
+          <td class="py-3 text-right num text-xs">
+            <span class="text-offwhite">{{ r.dy_pct|pct(1) }}</span>
+            <span class="text-muted"> / {{ r.yoc_pct|pct(1) }}</span>
+          </td>
+          <td class="py-3 text-right num text-sage">{{ r.est_monthly_income|brl }}</td>
+          <td class="py-3 pl-4">
+            {% if r.status == 'barato' %}
+              <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-sage/15 text-sage font-medium">Barato</span>
+            {% elif r.status == 'justo' %}
+              <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-marine/20 text-marine font-medium">Justo</span>
+            {% elif r.status == 'caro' %}
+              <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-400 font-medium">Acima do teto</span>
+            {% else %}
+              <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-white/[0.06] text-muted">Sem dados</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+{% endblock %}
