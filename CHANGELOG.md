@@ -2,6 +2,13 @@
 
 Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 
+## 0.1.0 (2026-11-24)
+
+
+### Features
+
+* estrutura inicial do Midas (Fase 1) ([7b11f67](https://github.com/thalesgmartins/midas/commit/7b11f67a3e55b5de8f043aed3fa82b4eb47f5b89))
+
 ## [0.1.0] - 2026-11-24
 
 ### Added
