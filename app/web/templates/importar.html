@@ -2,7 +2,10 @@
 {% block title %}Importar CSV — Midas{% endblock %}
 {% block content %}
 <div class="bg-surface border border-white/[0.08] rounded-2xl p-6 max-w-xl">
-  <h1 class="font-semibold text-xl text-offwhite mb-1">Importar Carteira</h1>
+  <h1 class="font-semibold text-xl text-offwhite mb-1 flex items-center gap-2">
+    <i class="mdi mdi-file-upload-outline text-sage"></i>
+    <span>Importar Carteira</span>
+  </h1>
   <p class="text-xs text-muted mb-5">
     CSV separado por <code class="num text-offwhite">;</code> com as colunas: Tipo de ativo; Ativo; Quant.; Preço Médio; Preço Atual; Saldo; % Ideal.
   </p>

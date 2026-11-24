@@ -12,8 +12,9 @@
       <input name="valor" value="{{ default_amount|default(400) }}"
              class="num w-44 bg-deep border border-white/[0.12] focus:border-marine focus:outline-none rounded-xl px-3.5 py-2.5 text-offwhite">
     </label>
-    <button class="bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-5 py-2.5 text-sm font-medium transition-colors">
-      Calcular
+    <button class="inline-flex items-center gap-2 bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-5 py-2.5 text-sm font-medium transition-colors">
+      <i class="mdi mdi-calculator-variant-outline text-base leading-none"></i>
+      <span>Calcular</span>
     </button>
   </form>
 </div>

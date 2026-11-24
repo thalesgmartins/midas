@@ -72,6 +72,22 @@ class Buy:
     price: float
     amount: float
     reasons: list[str] = field(default_factory=list)
+    value_before: float = 0.0
+    target_value: float = 0.0
+    share_pct: float = 0.0
+    is_leftover: bool = False
+
+    @property
+    def progress_after_pct(self) -> float:
+        """Percentual da meta do ativo atingido após o aporte (0 a 100)."""
+        if self.target_value <= 0:
+            return 100.0
+        return min(100.0, (self.value_before + self.amount) / self.target_value * 100)
+
+    @property
+    def remaining_to_target(self) -> float:
+        """Quanto ainda falta para atingir a meta do ativo após o aporte."""
+        return max(0.0, self.target_value - (self.value_before + self.amount))
 
 
 @dataclass
@@ -93,6 +109,14 @@ class Plan:
     buys: list[Buy]
     excluded: list[Excluded]
     leftover: float
+
+    @property
+    def excluded_groups(self) -> list[tuple[str, list[str]]]:
+        """Agrupa ativos fora do aporte pelo motivo para leitura rápida."""
+        grouped: dict[str, list[str]] = defaultdict(list)
+        for item in self.excluded:
+            grouped[item.reason].append(item.ticker)
+        return list(grouped.items())
 
 
 def format_brl(value: float) -> str:
@@ -159,9 +183,8 @@ def _class_reports(
         elif r.current_pct > r.target_pct:
             r.reason = prefix + "acima da meta"
         else:
-            r.reason = (
-                prefix + f"dentro da {_band_label(r.band_pp, r.band_mode, r.band_low, r.band_high)}"
-            )
+            label = _band_label(r.band_pp, r.band_mode, r.band_low, r.band_high)
+            r.reason = prefix + f"dentro da {label}"
     return reports
 
 
@@ -225,18 +248,31 @@ def plan_contribution(amount: float, classes: list[ClassInput], assets: list[Ass
     weight_sum: dict[str, float] = defaultdict(float)
     for asset in candidates:
         weight_sum[asset.class_name] += asset.weight
-    deficit = {
+
+    target_by_ticker = {
         a.ticker: reports[a.class_name].target_value_after * a.weight / weight_sum[a.class_name]
-        - a.value
         for a in candidates
     }
+    value_by_ticker = {a.ticker: a.value for a in assets}
+    deficit = {a.ticker: target_by_ticker[a.ticker] - a.value for a in candidates}
 
     buyable = [a for a in candidates if a.class_name in eligible]
     buys: dict[str, Buy] = {}
     cash = amount
     while cash > 0.009 and (choice := _best_purchase(buyable, deficit, cash)):
         asset, spend = choice
-        buy = buys.setdefault(asset.ticker, Buy(asset.ticker, asset.class_name, 0, asset.price, 0))
+        buy = buys.setdefault(
+            asset.ticker,
+            Buy(
+                ticker=asset.ticker,
+                class_name=asset.class_name,
+                units=0,
+                price=asset.price,
+                amount=0.0,
+                value_before=value_by_ticker[asset.ticker],
+                target_value=target_by_ticker[asset.ticker],
+            ),
+        )
         buy.units += spend if asset.divisible else 1
         buy.amount += spend
         deficit[asset.ticker] -= spend
@@ -259,7 +295,20 @@ def plan_contribution(amount: float, classes: list[ClassInput], assets: list[Ass
     leftover = round(cash, 2)
     reserve = next((a for a in assets if a.divisible and not a.frozen), None)
     if leftover > 0 and reserve:
-        buy = buys.setdefault(reserve.ticker, Buy(reserve.ticker, reserve.class_name, 0, 0, 0))
+        is_only_leftover = reserve.ticker not in buys
+        buy = buys.setdefault(
+            reserve.ticker,
+            Buy(
+                ticker=reserve.ticker,
+                class_name=reserve.class_name,
+                units=0,
+                price=0,
+                amount=0.0,
+                value_before=value_by_ticker[reserve.ticker],
+                target_value=target_by_ticker.get(reserve.ticker, value_by_ticker[reserve.ticker]),
+                is_leftover=is_only_leftover,
+            ),
+        )
         buy.units += leftover
         buy.amount += leftover
         buy.reasons.append(f"sobra de {format_brl(leftover)} (não dá para comprar mais cotas)")
@@ -269,6 +318,7 @@ def plan_contribution(amount: float, classes: list[ClassInput], assets: list[Ass
     divisible = {a.ticker for a in assets if a.divisible}
     for buy in buys.values():
         buy.amount = round(buy.amount, 2)
+        buy.share_pct = round(buy.amount / amount * 100, 1) if amount > 0 else 0.0
         if buy.ticker not in divisible:
             buy.units = int(round(buy.units))
 

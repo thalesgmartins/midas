@@ -1,86 +1,146 @@
 <div class="space-y-5">
+  <!-- Lista de Execução: O que comprar -->
   <div class="bg-surface border border-white/[0.08] rounded-2xl p-6">
-    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+    <div class="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-white/[0.08]">
       <div>
-        <h2 class="text-base font-semibold text-offwhite">O que comprar com <span class="num text-sage">{{ plan.amount|brl }}</span></h2>
+        <h2 class="text-base font-semibold text-offwhite flex items-center gap-2">
+          <i class="mdi mdi-cart-check text-sage text-lg"></i>
+          <span>Plano de Compra — <span class="num text-sage">{{ plan.amount|brl }}</span></span>
+        </h2>
         <p class="text-xs text-muted mt-0.5">
-          Patrimônio projetado: <span class="num text-offwhite">{{ plan.total_before|brl }}</span> → <span class="num text-offwhite">{{ plan.total_after|brl }}</span>
+          Patrimônio projetado: <span class="num text-offwhite/80">{{ plan.total_before|brl }}</span>
+          <i class="mdi mdi-arrow-right text-[11px] mx-0.5"></i>
+          <span class="num text-offwhite font-medium">{{ plan.total_after|brl }}</span>
         </p>
       </div>
       {% if plan.leftover > 0 %}
-      <span class="num text-xs px-2.5 py-1 rounded-full bg-deep border border-white/[0.08] text-muted">
+      <span class="num text-xs px-3 py-1 rounded-full bg-deep border border-white/[0.08] text-muted">
         Sobra em caixa: {{ plan.leftover|brl }}
       </span>
       {% endif %}
     </div>
 
     {% if plan.buys %}
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="text-[11px] uppercase tracking-wider text-muted border-b border-white/[0.08]">
-          <tr>
-            <th class="py-2.5 text-left font-medium">Ativo</th>
-            <th class="py-2.5 text-right font-medium">Qtd</th>
-            <th class="py-2.5 text-right font-medium">Cotação</th>
-            <th class="py-2.5 text-right font-medium">Aportar</th>
-            <th class="py-2.5 pl-5 text-left font-medium">Justificativa</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-white/[0.06]">
-        {% for b in plan.buys %}
-          <tr class="hover:bg-white/[0.02] transition-colors">
-            <td class="py-3 pr-3">
-              <div class="font-semibold text-offwhite">{{ b.ticker }}</div>
-              <div class="text-xs text-muted">{{ b.class_name }}</div>
-            </td>
-            <td class="py-3 text-right num text-offwhite">{{ b.units if b.price else '—' }}</td>
-            <td class="py-3 text-right num text-muted">{{ b.price|brl if b.price else '—' }}</td>
-            <td class="py-3 text-right num font-semibold text-sage">{{ b.amount|brl }}</td>
-            <td class="py-3 pl-5 text-xs text-muted leading-relaxed">{{ b.reasons|join(' · ') }}</td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
+    <div class="space-y-3">
+      {% for b in plan.buys %}
+      <div class="bg-deep/70 border border-white/[0.06] hover:border-white/[0.14] rounded-xl p-4 transition-colors">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-semibold shrink-0 {{ 'bg-white/[0.06] text-muted' if b.is_leftover else 'bg-marine/20 text-marine' }}">
+              {% if b.is_leftover %}
+                <i class="mdi mdi-piggy-bank-outline text-sm"></i>
+              {% else %}
+                #{{ loop.index }}
+              {% endif %}
+            </span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-semibold text-offwhite text-base">{{ b.ticker }}</span>
+                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/[0.06] text-muted">{{ b.class_name }}</span>
+              </div>
+              <div class="text-xs text-muted mt-0.5">
+                {% if b.is_leftover %}
+                  <span>Guardar sobra do aporte na reserva</span>
+                {% elif b.price %}
+                  <span>Comprar <strong class="num text-offwhite">{{ b.units }} {{ 'cota' if b.units == 1 else 'cotas' }}</strong> × <span class="num">{{ b.price|brl }}</span></span>
+                {% else %}
+                  <span>Aporte direto em renda fixa</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="text-right shrink-0">
+            <div class="num text-lg font-semibold text-sage">{{ b.amount|brl }}</div>
+            <div class="num text-[11px] text-muted">{{ b.share_pct|pct }} do aporte</div>
+          </div>
+        </div>
+
+        {% if not b.is_leftover %}
+        <div class="mt-3 pt-3 border-t border-white/[0.05]">
+          <div class="flex items-center justify-between text-[11px] text-muted mb-1.5">
+            <span>Progresso até a meta do ativo</span>
+            <span class="num">
+              {% if b.remaining_to_target < 1 %}
+                <span class="text-sage font-medium">Meta atingida</span>
+              {% else %}
+                Faltam <span class="text-offwhite">{{ b.remaining_to_target|brl }}</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="h-1.5 bg-ink rounded-full overflow-hidden">
+            <div class="h-full rounded-full {{ 'bg-sage' if b.progress_after_pct >= 95 else 'bg-marine' }}"
+                 style="width: {{ b.progress_after_pct }}%"></div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
     </div>
     {% else %}
       <p class="text-sm text-muted py-4">Nenhuma compra possível com as regras atuais.</p>
     {% endif %}
   </div>
 
-  <!-- Situação por Classe + Excluídos -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
-      <h3 class="text-sm font-semibold text-offwhite mb-3">Critério por Classe</h3>
-      <div class="space-y-2.5">
-        {% for c in plan.classes %}
-        <div class="flex items-start justify-between gap-3 text-xs py-1.5 border-b border-white/[0.05] last:border-0">
-          <div class="flex items-start gap-2">
-            <span class="mt-1 w-2 h-2 rounded-full shrink-0 {{ 'bg-marine' if c.eligible else 'bg-muted/40' }}"></span>
-            <div>
-              <div class="font-medium text-offwhite">{{ c.name }}</div>
-              <div class="text-muted mt-0.5">{{ c.reason }}</div>
-            </div>
-          </div>
-          <span class="num text-offwhite shrink-0">{{ c.value|brl }}</span>
+  <!-- Critério por Classe (Grid 2x2 visual) -->
+  <div class="bg-surface border border-white/[0.08] rounded-2xl p-6">
+    <h3 class="text-sm font-semibold text-offwhite mb-4 flex items-center gap-2">
+      <i class="mdi mdi-scale-balance text-marine text-base"></i>
+      <span>Decisão por Classe</span>
+    </h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {% for c in plan.classes %}
+      <div class="bg-deep/70 border border-white/[0.06] rounded-xl p-4">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <span class="font-medium text-offwhite text-sm">{{ c.name }}</span>
+          {% if c.eligible %}
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-marine/20 text-marine font-medium">Recebe aporte</span>
+          {% elif c.current_pct > c.target_pct %}
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-400 font-medium">Acima da meta</span>
+          {% else %}
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-sage/15 text-sage font-medium">Dentro da banda</span>
+          {% endif %}
         </div>
-        {% endfor %}
+        <div class="flex items-baseline justify-between text-xs mb-1.5">
+          <span class="num text-offwhite font-medium">{{ c.current_pct|pct }} <span class="text-muted font-normal">/ meta {{ c.target_pct|pct(0) }}</span></span>
+          <span class="num text-muted">{{ c.value|brl }}</span>
+        </div>
+        <div class="relative h-2 bg-ink rounded-full">
+          <div class="absolute h-2 rounded-full {{ 'bg-marine' if c.eligible else ('bg-amber-400/80' if c.current_pct > c.target_pct else 'bg-sage') }}"
+               style="width: {{ [c.current_pct, 100]|min }}%"></div>
+          <div class="absolute h-3.5 -top-[3px] w-0.5 bg-offwhite/70" style="left: {{ c.target_pct }}%"></div>
+        </div>
       </div>
-    </div>
-
-    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
-      <h3 class="text-sm font-semibold text-offwhite mb-3">Fora deste Aporte</h3>
-      {% if plan.excluded %}
-      <ul class="space-y-1.5 text-xs max-h-64 overflow-y-auto pr-1">
-        {% for e in plan.excluded %}
-        <li class="flex items-baseline justify-between gap-2 py-1 border-b border-white/[0.04] last:border-0">
-          <span class="font-medium text-offwhite shrink-0">{{ e.ticker }}</span>
-          <span class="text-muted text-right">{{ e.reason }}</span>
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <p class="text-xs text-muted">Nenhum ativo excluído.</p>
-      {% endif %}
+      {% endfor %}
     </div>
   </div>
+
+  <!-- Fora deste Aporte (Agrupado por motivo em chips) -->
+  {% if plan.excluded_groups %}
+  <div class="bg-surface border border-white/[0.08] rounded-2xl p-6">
+    <h3 class="text-sm font-semibold text-offwhite mb-4 flex items-center gap-2">
+      <i class="mdi mdi-filter-off-outline text-muted text-base"></i>
+      <span>Fora deste Aporte</span>
+    </h3>
+    <div class="space-y-3">
+      {% for reason, tickers in plan.excluded_groups %}
+      <div class="bg-deep/60 border border-white/[0.06] rounded-xl p-3.5">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <span class="text-xs font-medium text-offwhite">{{ reason }}</span>
+          <span class="num text-[11px] text-muted">{{ tickers|length }} {{ 'ativo' if tickers|length == 1 else 'ativos' }}</span>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+          {% for ticker in tickers %}
+          <span class="num text-xs px-2.5 py-0.5 rounded-md bg-surface border border-white/[0.08] text-muted">{{ ticker }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 </div>
+
+{% if oob_priorities %}
+  {% include "partials/priorities.html" %}
+{% endif %}

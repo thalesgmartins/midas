@@ -82,7 +82,9 @@ def aporte_simular(
     """Calcula o plano de aporte e devolve o fragmento HTML."""
     classes, assets = portfolio.to_engine_inputs(session)
     plan = plan_contribution(_parse_number(valor), classes, assets)
-    return templates.TemplateResponse(request, "partials/plan.html", {"plan": plan})
+    return templates.TemplateResponse(
+        request, "partials/plan.html", {"plan": plan, "oob_priorities": True}
+    )
 
 
 @router.post("/ativos/{asset_id}")

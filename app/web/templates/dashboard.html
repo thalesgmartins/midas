@@ -3,20 +3,25 @@
 {% block content %}
 {% if not s.groups or s.total == 0 %}
   <div class="bg-surface border border-white/[0.08] rounded-2xl p-8 text-center max-w-lg mx-auto mt-10">
-    <h1 class="text-lg font-semibold text-offwhite mb-2">Carteira vazia</h1>
+    <i class="mdi mdi-briefcase-plus-outline text-4xl text-sage"></i>
+    <h1 class="text-lg font-semibold text-offwhite mt-3 mb-2">Carteira vazia</h1>
     <p class="text-sm text-muted mb-5">Importe sua planilha CSV para começar a simular aportes e acompanhar metas.</p>
     <a href="/importar" class="inline-flex items-center gap-2 bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-5 py-2.5 text-sm font-medium transition-colors">
-      Importar CSV
+      <i class="mdi mdi-file-upload-outline"></i>
+      <span>Importar CSV</span>
     </a>
   </div>
 {% else %}
-  <!-- Card Hero: Simulador de Aporte Rápido + Prioridades do Mês -->
+  <!-- Card Hero: Simulador de Aporte Rápido + Prioridades Dinâmicas -->
   <section class="bg-evergreen border border-white/[0.08] rounded-2xl p-6 mb-6 grid grid-cols-1 xl:grid-cols-12 gap-6 items-center">
     <div class="xl:col-span-6">
-      <span class="inline-block text-[11px] uppercase tracking-widest text-sage font-medium mb-1">Aporte Orientado por Regras</span>
-      <h1 class="text-2xl font-semibold text-offwhite tracking-tight">Distribua seu próximo aporte com precisão</h1>
-      <p class="text-sm text-muted mt-1.5">
-        Prioriza classes fora da banda, respeita preço teto e ignora ativos em revisão — sem viés de preço médio.
+      <span class="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-sage font-medium mb-1">
+        <i class="mdi mdi-compass-outline text-sm"></i>
+        <span>Aporte Orientado por Regras</span>
+      </span>
+      <h1 class="text-2xl font-semibold text-offwhite tracking-tight">Quanto você vai aportar agora?</h1>
+      <p class="text-sm text-muted mt-1">
+        Prioriza classes abaixo da banda, respeita preço teto e ignora ativos em revisão.
       </p>
       <form hx-post="/aporte/simular" hx-target="#plan" class="mt-5 flex flex-wrap gap-3 items-end">
         <label class="block">
@@ -24,54 +29,33 @@
           <input name="valor" value="{{ default_amount }}"
                  class="num w-44 bg-deep border border-white/[0.12] focus:border-marine focus:outline-none rounded-xl px-3.5 py-2.5 text-offwhite text-base font-medium">
         </label>
-        <button class="bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-5 py-2.5 text-sm font-medium transition-colors">
-          Calcular rebalanceamento
+        <button class="inline-flex items-center gap-2 bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-5 py-2.5 text-sm font-medium transition-colors">
+          <i class="mdi mdi-calculator-variant-outline text-base leading-none"></i>
+          <span>Simular aporte</span>
         </button>
       </form>
     </div>
 
-    <!-- Mini-cards de prioridades -->
-    <div class="xl:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-      {% if plan and plan.buys %}
-        {% for b in plan.buys[:3] %}
-        <div class="bg-ink/60 border border-white/[0.08] rounded-xl p-4 flex flex-col justify-between">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-[11px] uppercase tracking-wider text-muted">#{{ loop.index }} Prioridade</span>
-            <span class="text-[11px] px-2 py-0.5 rounded-full bg-marine/20 text-marine font-medium">{{ b.class_name }}</span>
-          </div>
-          <div class="mt-3">
-            <div class="text-base font-semibold text-offwhite truncate" title="{{ b.ticker }}">{{ b.ticker }}</div>
-            <div class="num text-lg font-semibold text-sage mt-0.5">{{ b.amount|brl }}</div>
-          </div>
-          <div class="mt-2 pt-2 border-t border-white/[0.06] text-xs text-muted flex justify-between">
-            <span>Qtd</span>
-            <span class="num text-offwhite">{{ b.units if b.price else 'Reserva' }}</span>
-          </div>
-        </div>
-        {% endfor %}
-      {% else %}
-        <div class="sm:col-span-3 bg-ink/50 border border-white/[0.08] rounded-xl p-4 text-sm text-muted">
-          Nenhuma compra prioritária encontrada com as regras atuais.
-        </div>
-      {% endif %}
-    </div>
+    {% include "partials/priorities.html" %}
   </section>
 
   <!-- Área Inferior: Divisão 65 / 35 -->
   <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-    <!-- Esquerda (65%): Plano de Rebalanceamento -->
     <div class="xl:col-span-8" id="plan">
       {% if plan %}
         {% include "partials/plan.html" %}
       {% endif %}
     </div>
 
-    <!-- Direita (35%): Resumo, Atalho de Importação e Metas -->
+    <!-- Coluna Direita (35%): Resumo, Alocação e Atalho CSV -->
     <div class="xl:col-span-4 space-y-5">
       <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-sm font-semibold text-offwhite">Pulso da Carteira</h2>
-          <a href="/estatisticas" class="text-xs text-marine hover:underline">Ver análise completa</a>
+          <h2 class="text-sm font-semibold text-offwhite flex items-center gap-2">
+            <i class="mdi mdi-pulse text-sage"></i>
+            <span>Pulso da Carteira</span>
+          </h2>
+          <a href="/estatisticas" class="text-xs text-marine hover:underline">Detalhes</a>
         </div>
         <div class="space-y-3">
           <div class="flex items-baseline justify-between">
@@ -93,7 +77,10 @@
       </div>
 
       <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
-        <h2 class="text-sm font-semibold text-offwhite mb-3">Alocação por Classe</h2>
+        <h2 class="text-sm font-semibold text-offwhite mb-3 flex items-center gap-2">
+          <i class="mdi mdi-chart-donut text-marine"></i>
+          <span>Alocação por Classe</span>
+        </h2>
         <div class="space-y-3">
           {% for g in s.groups %}
           <div>
@@ -110,16 +97,21 @@
           </div>
           {% endfor %}
         </div>
-        <a href="/metas" class="mt-4 block text-center text-xs text-muted hover:text-offwhite border border-white/[0.08] rounded-xl py-2 transition-colors">
-          Ajustar metas e bandas
+        <a href="/metas" class="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted hover:text-offwhite border border-white/[0.08] rounded-xl py-2 transition-colors">
+          <i class="mdi mdi-tune-variant text-sm"></i>
+          <span>Ajustar metas e bandas</span>
         </a>
       </div>
 
       <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
-        <h2 class="text-sm font-semibold text-offwhite mb-1.5">Atualizar Planilha</h2>
+        <h2 class="text-sm font-semibold text-offwhite mb-1.5 flex items-center gap-2">
+          <i class="mdi mdi-file-delimited-outline text-sage"></i>
+          <span>Atualizar Planilha</span>
+        </h2>
         <p class="text-xs text-muted mb-4">Reimportar seu CSV atualiza quantidades e preços mantendo status, preço teto e segmentos.</p>
-        <a href="/importar" class="block text-center bg-deep hover:bg-ink border border-white/[0.08] text-offwhite rounded-xl py-2.5 text-xs font-medium transition-colors">
-          Ir para Importar CSV
+        <a href="/importar" class="flex items-center justify-center gap-2 bg-deep hover:bg-ink border border-white/[0.08] text-offwhite rounded-xl py-2.5 text-xs font-medium transition-colors">
+          <i class="mdi mdi-file-upload-outline text-sm"></i>
+          <span>Ir para Importar CSV</span>
         </a>
       </div>
     </div>
