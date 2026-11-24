@@ -1,0 +1,41 @@
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+  <div class="lg:col-span-2 bg-white rounded-xl shadow p-4">
+    <h2 class="font-semibold mb-3">O que comprar com {{ plan.amount|brl }}</h2>
+    {% if plan.buys %}
+    <table class="w-full text-sm">
+      <thead class="text-left text-slate-500"><tr><th class="py-1">Ativo</th><th class="text-right">Qtd</th><th class="text-right">Preço</th><th class="text-right">Valor</th><th class="pl-4">Por quê</th></tr></thead>
+      <tbody>
+      {% for b in plan.buys %}
+        <tr class="border-t align-top">
+          <td class="py-1 font-medium">{{ b.ticker }}<div class="text-xs text-slate-400">{{ b.class_name }}</div></td>
+          <td class="text-right">{{ b.units if b.price else '—' }}</td>
+          <td class="text-right">{{ b.price|brl if b.price else '—' }}</td>
+          <td class="text-right font-semibold">{{ b.amount|brl }}</td>
+          <td class="pl-4 text-xs text-slate-600">{{ b.reasons|join(' · ') }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="text-sm">Nenhuma compra possível com as regras atuais.</p>{% endif %}
+    {% if plan.leftover > 0 %}<p class="text-sm mt-2">Sobra em caixa: {{ plan.leftover|brl }}</p>{% endif %}
+
+    <h3 class="font-semibold mt-6 mb-2 text-sm">Classes</h3>
+    <table class="w-full text-sm">
+      {% for c in plan.classes %}
+      <tr class="border-t">
+        <td class="py-1"><span class="{{ 'text-green-600' if c.eligible else 'text-slate-300' }}">●</span> {{ c.name }}</td>
+        <td class="text-slate-600">{{ c.reason }}</td>
+        <td class="text-right">{{ c.value|brl }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div class="bg-white rounded-xl shadow p-4">
+    <h2 class="font-semibold mb-3">Fora deste aporte</h2>
+    <ul class="text-sm space-y-1">
+      {% for e in plan.excluded %}
+      <li><span class="font-medium">{{ e.ticker }}</span> <span class="text-slate-500">— {{ e.reason }}</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>

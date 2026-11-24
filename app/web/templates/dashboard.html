@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not s.groups or s.total == 0 %}
+  <div class="bg-white rounded-xl shadow p-6">
+    Carteira vazia. <a href="/importar" class="text-blue-600 underline">Importe sua planilha</a>.
+  </div>
+{% else %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+  <div class="bg-white rounded-xl shadow p-4">
+    <div class="text-sm text-slate-500">Patrimônio total</div>
+    <div class="text-2xl font-semibold">{{ s.total|brl }}</div>
+  </div>
+  <div class="bg-white rounded-xl shadow p-4">
+    <div class="text-sm text-slate-500">Renda variável (custo → mercado)</div>
+    <div class="text-lg">{{ s.variable_cost|brl }} → <b>{{ s.variable_value|brl }}</b></div>
+    {% set v = (s.variable_value / s.variable_cost - 1) * 100 if s.variable_cost else 0 %}
+    <div class="text-sm {{ 'text-red-600' if v < 0 else 'text-green-600' }}">{{ v|pct }} (só preço, sem proventos)</div>
+  </div>
+  <div class="bg-white rounded-xl shadow p-4 flex flex-col gap-2">
+    <button hx-post="/cotacoes/atualizar" hx-target="#quote-msg" hx-indicator="#quote-spin"
+            class="bg-slate-900 text-white rounded-lg px-3 py-2 text-sm">Atualizar cotações</button>
+    <span id="quote-spin" class="htmx-indicator text-xs text-slate-500">buscando…</span>
+    <div id="quote-msg"></div>
+  </div>
+</div>
+
+<!-- Alocação por classe -->
+<div class="bg-white rounded-xl shadow p-4 mb-6">
+  <h2 class="font-semibold mb-3">Alocação por classe</h2>
+  <div class="space-y-3">
+    {% for g in s.groups %}
+    <div>
+      <div class="flex justify-between text-sm">
+        <span class="font-medium">{{ g.asset_class.name }}</span>
+        <span>
+          {{ g.pct|pct }} <span class="text-slate-400">/ meta {{ g.asset_class.target_pct|pct(0) }} ±{{ g.asset_class.band_pp|int }}pp</span>
+          {% if g.state == 'ok' %}<span class="ml-2 text-green-600">● dentro da banda</span>
+          {% elif g.state == 'acima' %}<span class="ml-2 text-amber-600">▲ acima ({{ '%+.1f'|format(g.diff) }}pp)</span>
+          {% else %}<span class="ml-2 text-red-600">▼ abaixo ({{ '%+.1f'|format(g.diff) }}pp)</span>{% endif %}
+        </span>
+      </div>
+      <div class="relative h-3 bg-slate-100 rounded mt-1">
+        <div class="absolute h-3 rounded {{ 'bg-green-500' if g.state=='ok' else ('bg-amber-500' if g.state=='acima' else 'bg-red-500') }}"
+             style="width: {{ [g.pct, 100]|min }}%"></div>
+        <div class="absolute h-3 bg-slate-400/30" style="left: {{ [g.asset_class.target_pct - g.asset_class.band_pp, 0]|max }}%; width: {{ g.asset_class.band_pp * 2 }}%"></div>
+        <div class="absolute h-5 -top-1 w-0.5 bg-slate-900" style="left: {{ g.asset_class.target_pct }}%"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Segmentos -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+  {% for cname, segs in s.segments.items() if cname in ['Ações', 'FIIs'] %}
+  <div class="bg-white rounded-xl shadow p-4">
+    <h2 class="font-semibold mb-2">Diversificação — {{ cname }}</h2>
+    {% for seg, val, p in segs %}
+    <div class="flex items-center gap-2 text-sm py-0.5">
+      <span class="w-64 truncate">{{ seg }}</span>
+      <div class="flex-1 h-2 bg-slate-100 rounded"><div class="h-2 bg-blue-500 rounded" style="width: {{ p }}%"></div></div>
+      <span class="w-14 text-right">{{ p|pct(0) }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Posições -->
+{% for g in s.groups if g.rows %}
+<div class="bg-white rounded-xl shadow p-4 mb-4 overflow-x-auto">
+  <h2 class="font-semibold mb-2">{{ g.asset_class.name }} <span class="text-slate-400 font-normal">· {{ g.value|brl }}</span></h2>
+  <table class="w-full text-sm">
+    <thead class="text-slate-500 text-left">
+      <tr>
+        <th class="py-1">Ativo</th><th>Segmento</th><th class="text-right">Qtd</th>
+        <th class="text-right">PM</th><th class="text-right">Atual</th><th class="text-right">Var.</th>
+        <th class="text-right">Saldo</th><th class="text-right">% Cart.</th><th class="text-right">% Ideal</th>
+        <th class="text-right">Peso</th><th class="text-right">Preço teto</th><th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in g.rows %}{% set a = r.asset %}
+      <tr class="border-t {{ 'bg-amber-50' if a.status.value == 'em_revisao' else '' }}">
+        <td class="py-1 font-medium">{{ a.ticker }}</td>
+        <td>
+          <input name="segment" value="{{ a.segment }}" hx-post="/ativos/{{ a.id }}" hx-trigger="change"
+                 class="w-48 border-0 bg-transparent focus:bg-white focus:ring-1 rounded px-1">
+        </td>
+        <td class="text-right">{{ a.quantity|int if not a.divisible else '—' }}</td>
+        <td class="text-right">{{ a.avg_price|brl if not a.divisible else '—' }}</td>
+        <td class="text-right">{{ a.current_price|brl if not a.divisible else '—' }}</td>
+        <td class="text-right {{ 'text-red-600' if a.variation_pct and a.variation_pct < 0 else 'text-green-600' }}">{{ a.variation_pct|pct }}</td>
+        <td class="text-right">{{ a.value|brl }}</td>
+        <td class="text-right">{{ r.pct|pct }}</td>
+        <td class="text-right text-slate-500">{{ r.ideal|pct }}</td>
+        <td class="text-right">
+          <input name="weight" value="{{ '%g'|format(a.weight) }}" hx-post="/ativos/{{ a.id }}" hx-trigger="change"
+                 class="w-14 text-right border rounded px-1">
+        </td>
+        <td class="text-right">
+          {% if not a.divisible %}
+          <input name="price_ceiling" value="{{ '%.2f'|format(a.price_ceiling) if a.price_ceiling else '' }}" placeholder="—"
+                 hx-post="/ativos/{{ a.id }}" hx-trigger="change"
+                 class="w-20 text-right border rounded px-1 {{ 'border-red-500 text-red-600' if a.price_ceiling and a.current_price > a.price_ceiling else '' }}">
+          {% endif %}
+        </td>
+        <td>
+          <select name="status" hx-post="/ativos/{{ a.id }}" hx-trigger="change" class="border rounded px-1 text-xs">
+            {% for st in statuses %}
+            <option value="{{ st.value }}" {{ 'selected' if a.status == st else '' }}>{{ 'Ativo' if st.value == 'ativo' else 'Em revisão' }}</option>
+            {% endfor %}
+          </select>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+<p class="text-xs text-slate-500">Peso = participação relativa dentro da classe (0 = não aportar). "Em revisão" congela o ativo: sem aporte e sem sugestão de venda.</p>
+{% endif %}
+{% endblock %}

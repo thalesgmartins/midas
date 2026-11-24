@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="bg-white rounded-xl shadow p-4 mb-6">
+  <h1 class="font-semibold text-lg mb-3">Simular aporte</h1>
+  <form hx-post="/aporte/simular" hx-target="#plan" class="flex gap-2 items-end">
+    <label class="text-sm">Valor (R$)
+      <input name="valor" value="400" class="block border rounded px-2 py-1 w-40">
+    </label>
+    <button class="bg-slate-900 text-white rounded-lg px-4 py-1.5">Calcular</button>
+  </form>
+  <p class="text-xs text-slate-500 mt-2">
+    Regras: ativos em revisão, com peso 0 ou acima do preço teto ficam de fora · só recebem aporte classes abaixo da banda
+    (ou abaixo da meta, se nenhuma estiver fora) · compra cota a cota minimizando o desvio das metas · preço médio não influencia.
+  </p>
+</div>
+<div id="plan"></div>
+{% endblock %}

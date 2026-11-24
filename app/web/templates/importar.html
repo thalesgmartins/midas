@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="bg-white rounded-xl shadow p-4 max-w-xl">
+  <h1 class="font-semibold text-lg mb-3">Importar carteira</h1>
+  {% if msg %}<p class="text-green-600 text-sm mb-2">{{ msg }} <a href="/" class="underline">Ver carteira</a></p>{% endif %}
+  <form method="post" enctype="multipart/form-data" class="space-y-3">
+    <input type="file" name="arquivo" accept=".csv,.txt" class="block text-sm">
+    <button class="bg-slate-900 text-white rounded-lg px-4 py-1.5">Importar</button>
+  </form>
+  <p class="text-xs text-slate-500 mt-3">
+    CSV separado por <code>;</code> com as colunas: Tipo de ativo; Ativo; Quant.; Preço Médio; Preço Atual; …; Saldo; …; % Ideal.
+    Reimportar atualiza quantidades e preços, mas mantém status, preço teto e segmentos editados.
+  </p>
+</div>
+{% endblock %}

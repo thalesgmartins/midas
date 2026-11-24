@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Midas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/static/js/htmx.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <nav class="bg-slate-900 text-slate-100">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex gap-6 items-center">
+      <span class="font-semibold tracking-wide text-amber-400">Midas</span>
+      <a href="/" class="hover:text-white text-slate-300">Carteira</a>
+      <a href="/aporte" class="hover:text-white text-slate-300">Aporte</a>
+      <a href="/metas" class="hover:text-white text-slate-300">Metas</a>
+      <a href="/importar" class="hover:text-white text-slate-300">Importar</a>
+    </div>
+  </nav>
+  <main class="max-w-7xl mx-auto px-4 py-6">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

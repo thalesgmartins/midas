@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="bg-white rounded-xl shadow p-4 max-w-xl">
+  <h1 class="font-semibold text-lg mb-3">Metas por classe</h1>
+  {% if request.query_params.get('ok') %}<p class="text-green-600 text-sm mb-2">Metas salvas.</p>{% endif %}
+  <form method="post" class="space-y-2">
+    <div class="grid grid-cols-3 gap-2 text-sm text-slate-500"><span>Classe</span><span>Meta (%)</span><span>Banda (± p.p.)</span></div>
+    {% for c in classes %}
+    <div class="grid grid-cols-3 gap-2 items-center">
+      <span>{{ c.name }}</span>
+      <input name="target_{{ c.id }}" value="{{ '%g'|format(c.target_pct) }}" class="border rounded px-2 py-1">
+      <input name="band_{{ c.id }}" value="{{ '%g'|format(c.band_pp) }}" class="border rounded px-2 py-1">
+    </div>
+    {% endfor %}
+    <p class="text-xs text-slate-500">Soma das metas: {{ classes|sum(attribute='target_pct') }}%</p>
+    <button class="bg-slate-900 text-white rounded-lg px-4 py-1.5">Salvar</button>
+  </form>
+</div>
+{% endblock %}
