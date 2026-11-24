@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from enum import StrEnum
+from typing import Optional
 
 from sqlalchemy import Column
 from sqlalchemy import Enum as SAEnum
@@ -65,6 +66,9 @@ class Asset(SQLModel, table=True):
     price_updated_at: datetime | None = None
 
     asset_class: AssetClass | None = Relationship(back_populates="assets")
+    fundamentals: Optional["AssetFundamentals"] = Relationship(  # noqa: UP045
+        back_populates="asset", sa_relationship_kwargs={"uselist": False}
+    )
 
     @property
     def value(self) -> float:
@@ -82,3 +86,23 @@ class Asset(SQLModel, table=True):
         if self.divisible or not self.avg_price:
             return None
         return (self.current_price / self.avg_price - 1) * 100
+
+
+class AssetFundamentals(SQLModel, table=True):
+    """Indicadores fundamentalistas e proventos coletados para um ativo."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    asset_id: int = Field(foreign_key="asset.id", unique=True, index=True)
+
+    lpa: float | None = None  # Lucro por ação (12m)
+    vpa: float | None = None  # Valor patrimonial por ação/cota
+    pl: float | None = None  # Preço / Lucro
+    pvp: float | None = None  # Preço / Valor Patrimonial
+    roe: float | None = None  # Retorno sobre patrimônio líquido (decimal, ex: 0.20 = 20%)
+    payout: float | None = None  # Payout (decimal, ex: 0.40 = 40%)
+    div_12m: float | None = None  # Proventos por cota nos últimos 12 meses (R$)
+    div_avg_5y: float | None = None  # Média anual de proventos até 5 anos (R$)
+
+    updated_at: datetime | None = None
+
+    asset: Asset | None = Relationship(back_populates="fundamentals")
