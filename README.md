@@ -4,7 +4,8 @@ Ferramenta web de uso pessoal para acompanhar a carteira de investimentos, avali
 
 ## Funcionalidades
 
-- **Dashboard Operacional (`/`):** simulador rápido de aporte com 3 cards de prioridade dinâmicos (HTMX OOB), lista de execução com barras de progresso por ativo, decisão por classe e ativos fora do aporte agrupados por motivo.
+- **Dashboard Operacional (`/`):** central de decisão com faixa de sinais do dia (renda mensal, eventos CVM não lidos, patrimônio/equilíbrio), simulador rápido de aporte com atalhos (`R$ 200`, `400`, `800`, `1500`), 3 cards de prioridade dinâmicos (HTMX OOB), lista de execução com barras de progresso e botão **Registrar compras na carteira** (atualiza quantidades e preço médio automaticamente).
+- **Segurança (`/login`):** autenticação exclusiva via **Google OAuth 2.0** com allowlist de e-mail (`ALLOWED_EMAILS`), cookie assinado `HttpOnly` e proteção CSRF (`state`), ativada automaticamente ao configurar `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` no `.env`.
 - **Estatísticas (`/estatisticas`):** 4 KPIs (patrimônio total, custo vs. mercado, aderência às metas e ativos monitorados), mapa de alocação vs. meta/banda, diversificação por segmento e tabela completa com edição inline (segmento, peso, preço teto manual e status *Em revisão*).
 - **Risco & Cenários (`/risco`):** volatilidade anualizada + ganho de diversificação, drawdown máximo histórico (2 anos), VaR 30 dias (95%), Beta vs. Ibovespa, cone de cenários (bootstrap 30d/90d/12m), matriz de correlação (pares colados vs. melhores diversificadores) e projeção interativa de metas de patrimônio.
 - **Valuation & Proventos (`/valuation`):** preço teto multi-método (**Graham**, **Bazin/Barsi 6%**, **Peter Lynch / PEG** para ações; **P/VP = 1** e **Yield alvo 11%** para FIIs), preço teto consenso (mediana) integrado automaticamente ao motor de aporte, DY, Yield on Cost e renda mensal estimada.

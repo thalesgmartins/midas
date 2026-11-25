@@ -9,10 +9,10 @@
   <script src="/static/js/htmx.min.js"></script>
 </head>
 <body class="bg-ink text-offwhite font-sans antialiased min-h-screen flex">
-  <!-- Sidebar Fixa -->
+  <!-- Sidebar Fixa Agrupada por Propósito -->
   <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-60 bg-deep border-r border-white/[0.08] flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
     <div class="h-16 px-6 flex items-center gap-3 border-b border-white/[0.08]">
-      <div class="w-8 h-8 rounded-lg bg-evergreen border border-white/[0.12] flex items-center justify-center">
+      <div class="w-8 h-8 rounded-lg bg-hero border border-marine/30 flex items-center justify-center">
         <i class="mdi mdi-finance text-sage text-lg leading-none"></i>
       </div>
       <div>
@@ -21,30 +21,50 @@
       </div>
     </div>
 
-    <nav class="flex-1 px-3 py-5 space-y-1 text-sm">
-      {% set nav_items = [
-        ('dashboard', '/', 'Dashboard', 'mdi-view-dashboard-outline'),
-        ('estatisticas', '/estatisticas', 'Estatísticas', 'mdi-chart-box-outline'),
-        ('risco', '/risco', 'Risco & Cenários', 'mdi-shield-check-outline'),
-        ('valuation', '/valuation', 'Valuation & Proventos', 'mdi-scale-balance'),
-        ('screener', '/screener', 'Screener & Watchlist', 'mdi-radar'),
-        ('eventos', '/eventos', 'Eventos CVM', 'mdi-newspaper-variant-outline'),
-        ('aporte', '/aporte', 'Novo Aporte', 'mdi-cash-plus'),
-        ('metas', '/metas', 'Metas de Alocação', 'mdi-target'),
-        ('importar', '/importar', 'Importar CSV', 'mdi-file-upload-outline'),
+    <nav class="flex-1 px-3 py-4 space-y-5 text-sm overflow-y-auto">
+      {% set sections = [
+        ('Decisão', [
+          ('dashboard', '/', 'Central de Aporte', 'mdi-compass-outline', None),
+          ('eventos', '/eventos', 'Eventos CVM & FIIs', 'mdi-newspaper-variant-outline', unread_events|default(0)),
+        ]),
+        ('Análise', [
+          ('estatisticas', '/estatisticas', 'Minha Carteira', 'mdi-briefcase-outline', None),
+          ('valuation', '/valuation', 'Valuation & Renda', 'mdi-scale-balance', None),
+          ('risco', '/risco', 'Risco & Cenários', 'mdi-shield-check-outline', None),
+          ('screener', '/screener', 'Screener B3', 'mdi-radar', None),
+        ]),
+        ('Configuração', [
+          ('metas', '/metas', 'Metas & Bandas', 'mdi-target', None),
+          ('importar', '/importar', 'Importar CSV', 'mdi-file-upload-outline', None),
+        ]),
       ] %}
-      {% for key, href, label, icon in nav_items %}
-      <a href="{{ href }}"
-         class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors {{ 'bg-marine/20 text-offwhite border border-marine/40 font-medium' if active_nav == key else 'text-muted hover:text-offwhite hover:bg-white/[0.04]' }}">
-        <i class="mdi {{ icon }} text-lg leading-none {{ 'text-marine' if active_nav == key else 'text-muted' }}"></i>
-        <span>{{ label }}</span>
-      </a>
+
+      {% for section_title, items in sections %}
+      <div>
+        <div class="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted/60">
+          {{ section_title }}
+        </div>
+        <div class="space-y-1">
+          {% for key, href, label, icon, badge in items %}
+          <a href="{{ href }}"
+             class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl transition-colors {{ 'bg-marine/20 text-offwhite border border-marine/40 font-medium' if active_nav == key else 'text-muted hover:text-offwhite hover:bg-white/[0.04]' }}">
+            <span class="flex items-center gap-3 min-w-0">
+              <i class="mdi {{ icon }} text-lg leading-none shrink-0 {{ 'text-marine' if active_nav == key else 'text-muted' }}"></i>
+              <span class="truncate">{{ label }}</span>
+            </span>
+            {% if badge and badge > 0 %}
+            <span class="num text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 shrink-0">{{ badge }}</span>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
       {% endfor %}
     </nav>
 
     <div class="p-4 border-t border-white/[0.08]">
       <button hx-post="/cotacoes/atualizar" hx-target="#quote-msg" hx-indicator="#quote-spin"
-              class="w-full flex items-center justify-center gap-2 bg-surface hover:bg-evergreen border border-white/[0.08] text-offwhite rounded-xl px-3 py-2 text-xs font-medium transition-colors">
+              class="w-full flex items-center justify-center gap-2 bg-surface hover:bg-hero border border-white/[0.08] text-offwhite rounded-xl px-3 py-2 text-xs font-medium transition-colors">
         <i class="mdi mdi-refresh text-sage text-sm leading-none"></i>
         <span>Atualizar cotações</span>
       </button>
@@ -82,7 +102,14 @@
             {% endif %}
           </span>
         </div>
-        <div class="w-8 h-8 rounded-full bg-evergreen border border-white/[0.12] flex items-center justify-center text-xs font-semibold text-offwhite">
+        {% if auth_enabled %}
+        <a href="/logout" title="Sair da sessão"
+           class="p-2 rounded-xl bg-surface hover:bg-hero border border-white/[0.08] text-muted hover:text-offwhite transition-colors">
+          <i class="mdi mdi-logout text-base leading-none"></i>
+        </a>
+        {% endif %}
+        <div class="w-8 h-8 rounded-full bg-hero border border-marine/30 flex items-center justify-center text-xs font-semibold text-offwhite"
+             title="{{ current_user.email if current_user else 'Uso local' }}">
           TM
         </div>
       </div>

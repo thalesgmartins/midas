@@ -58,6 +58,23 @@
     </div>
   </section>
 
+  <!-- Guia Rápido dos Métodos -->
+  <details class="bg-surface border border-white/[0.08] rounded-2xl p-4 mb-6 group">
+    <summary class="cursor-pointer text-xs font-medium text-offwhite flex items-center justify-between list-none">
+      <span class="flex items-center gap-2">
+        <i class="mdi mdi-help-circle-outline text-marine text-base"></i>
+        <span>Como funcionam os métodos de preço teto?</span>
+      </span>
+      <i class="mdi mdi-chevron-down text-muted group-open:rotate-180 transition-transform"></i>
+    </summary>
+    <div class="mt-3 pt-3 border-t border-white/[0.06] grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-muted leading-relaxed">
+      <div><strong class="text-offwhite">Graham:</strong> <span class="num">√(22,5 × LPA × VPA)</span> — valor intrínseco clássico para empresas lucrativas e estáveis.</div>
+      <div><strong class="text-offwhite">Bazin / Barsi (6%):</strong> divide o <em>menor</em> dividendo entre 12m e média 5a por 6%, evitando armadilhas quando o payout cai.</div>
+      <div><strong class="text-offwhite">Peter Lynch (PEG):</strong> calcula crescimento sustentável <span class="num">ROE × (1 - Payout)</span>; <span class="num text-sage">PEG &le; 1</span> indica crescimento barato.</div>
+      <div><strong class="text-offwhite">Consenso (Mediana):</strong> mediana dos métodos aplicáveis. Alimenta o motor de aporte automaticamente se você não digitar um preço teto manual.</div>
+    </div>
+  </details>
+
   <!-- Tabela de Ações: Graham, Bazin, Lynch/PEG -->
   {% if v.stocks %}
   <section class="bg-surface border border-white/[0.08] rounded-2xl p-6 mb-6 overflow-x-auto">
