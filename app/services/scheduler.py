@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 from sqlmodel import Session
 
-from app.services import analytics, fundamentals, jobs, quotes, screener
+from app.services import analytics, events, fundamentals, jobs, quotes, screener
 
 logger = logging.getLogger(__name__)
 
@@ -57,11 +57,20 @@ def run_risk_job(session: Session, on_progress: jobs.ProgressCallback) -> str:
     return f"{msg} Sem dados: {len(failed)}" if failed else msg
 
 
+def run_events_job(session: Session, on_progress: jobs.ProgressCallback) -> str:
+    """Sincroniza Fatos Relevantes e Avisos aos Acionistas da CVM (IPE)."""
+    created, notified = events.sync_cvm_events(session)
+    on_progress(1, 1)
+    msg = f"{created} novos eventos da CVM"
+    return f"{msg} ({notified} alertas enviados)." if notified else f"{msg}."
+
+
 async def scheduler_loop() -> None:
     """Loop periódico iniciado no lifespan do FastAPI."""
     last_quotes_slot: tuple[date, int] | None = None
     last_daily_fundamentals: date | None = None
     last_daily_screener: date | None = None
+    last_daily_events: date | None = None
 
     logger.info("Agendador automático do Midas iniciado (cotações a cada 15 min no pregão).")
     # Aguarda 2 min após o startup para não disparar coletas pesadas em restarts rápidos
@@ -91,6 +100,13 @@ async def scheduler_loop() -> None:
                         "screener",
                         run_screener_job,
                         "Atualização diária do Screener B3...",
+                    )
+                if now.minute >= 30 and last_daily_events != today:
+                    last_daily_events = today
+                    jobs.trigger(
+                        "events",
+                        run_events_job,
+                        "Sincronização diária da CVM (IPE)...",
                     )
         except Exception:
             logger.exception("Erro no ciclo do agendador automático")
