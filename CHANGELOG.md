@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 
+## [0.7.0](https://github.com/thalesgmartins/midas/compare/v0.6.0...v0.7.0) (2026-11-25)
+
+
+### Features
+
+* **ui:** adicionar favicon SVG na paleta do Midas ([e1d20d1](https://github.com/thalesgmartins/midas/commit/e1d20d195fb2f7d8e01e2b9cff1d5e05b163eb6a))
+* **ui:** alinhar tela de login ao layout do ParseApp com paleta Midas ([ef279c7](https://github.com/thalesgmartins/midas/commit/ef279c7740b3f5ffe51ecebc7972bc37adfde149))
+
 ## [0.6.0](https://github.com/thalesgmartins/midas/compare/v0.5.0...v0.6.0) (2026-11-25)
 
 
