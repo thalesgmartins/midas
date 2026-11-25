@@ -142,3 +142,21 @@ class PricePoint(SQLModel, table=True):
     ticker: str = Field(index=True)
     ref_date: date = Field(index=True)
     close: float
+
+
+class MarketEvent(SQLModel, table=True):
+    """Fato relevante, aviso aos acionistas ou comunicado oficial da CVM (IPE)."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    protocol: str = Field(index=True, unique=True)
+    ticker: str = Field(index=True)
+    company_name: str
+    category: str
+    subject: str
+    published_at: date = Field(index=True)
+    document_url: str
+    ai_summary: str | None = None
+    sentiment: str | None = None  # positivo | neutro | negativo
+    is_read: bool = False
+    notified: bool = False
+    created_at: datetime
