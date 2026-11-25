@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Eventos CVM — Midas{% endblock %}
+{% block content %}
+  <!-- Cabeçalho + Ação -->
+  <section class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-xl font-semibold text-offwhite flex items-center gap-2">
+        <i class="mdi mdi-newspaper-variant-outline text-marine"></i>
+        <span>Monitor de Fatos Relevantes (CVM)</span>
+      </h1>
+      <p class="text-xs text-muted mt-1">
+        Documentos oficiais (IPE) filtrados pelos ativos da sua carteira e Watchlist — com links diretos e resumo opcional por IA.
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="ev-msg"></div>
+      <button hx-post="/eventos/atualizar" hx-target="#ev-msg"
+              class="inline-flex items-center gap-2 bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
+        <i class="mdi mdi-cloud-download-outline text-base leading-none"></i>
+        <span>Sincronizar CVM</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- 3 KPIs + Status das Integrações Opcionais -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="text-xs text-muted">Eventos Não Lidos</div>
+      <div class="num text-2xl font-semibold {{ 'text-amber-400' if ev.unread_count else 'text-sage' }} mt-2">{{ ev.unread_count }}</div>
+      <div class="text-xs text-muted mt-1.5">{{ ev.fatos_count }} Fatos Relevantes nos últimos 90 dias</div>
+    </div>
+
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-muted">Alertas Telegram</span>
+        <span class="text-[10px] px-2 py-0.5 rounded-full {{ 'bg-sage/15 text-sage' if ev.telegram_enabled else 'bg-white/[0.06] text-muted' }}">
+          {{ 'Ativo' if ev.telegram_enabled else 'Opcional' }}
+        </span>
+      </div>
+      <div class="text-xs text-muted mt-3">
+        {% if ev.telegram_enabled %}
+          Novos Fatos Relevantes disparam notificação automática no seu Telegram.
+        {% else %}
+          Defina <code class="num text-offwhite">TELEGRAM_BOT_TOKEN</code> e <code class="num text-offwhite">TELEGRAM_CHAT_ID</code> no <code>.env</code> para ativar.
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-muted">Resumo por IA (Gemini)</span>
+        <span class="text-[10px] px-2 py-0.5 rounded-full {{ 'bg-sage/15 text-sage' if ev.ai_enabled else 'bg-white/[0.06] text-muted' }}">
+          {{ 'Ativo' if ev.ai_enabled else 'Opcional' }}
+        </span>
+      </div>
+      <div class="text-xs text-muted mt-3">
+        {% if ev.ai_enabled %}
+          Resumos e análise de sentimento habilitados (salvos em cache no banco).
+        {% else %}
+          Opcional: adicione <code class="num text-offwhite">GEMINI_API_KEY</code> no <code>.env</code> para resumir documentos automaticamente.
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Filtros -->
+  <section class="bg-surface border border-white/[0.08] rounded-2xl p-5 mb-6">
+    <form method="get" action="/eventos"
+          hx-get="/eventos" hx-target="#eventos-feed" hx-select="#eventos-feed" hx-push-url="true" hx-trigger="change"
+          class="flex flex-wrap items-end gap-3">
+      <label class="block">
+        <span class="text-[11px] uppercase tracking-wider text-muted block mb-1">Ativo</span>
+        <select name="ticker"
+                class="bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-xl px-3 py-2 text-xs text-offwhite">
+          <option value="">Todos</option>
+          {% for t in ev.tickers %}
+          <option value="{{ t }}" {{ 'selected' if ticker == t else '' }}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label class="block">
+        <span class="text-[11px] uppercase tracking-wider text-muted block mb-1">Categoria</span>
+        <select name="categoria"
+                class="bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-xl px-3 py-2 text-xs text-offwhite">
+          <option value="">Todas</option>
+          <option value="Fato Relevante" {{ 'selected' if categoria == 'Fato Relevante' else '' }}>Fato Relevante</option>
+          <option value="Relatório Gerencial" {{ 'selected' if categoria == 'Relatório Gerencial' else '' }}>Relatório Gerencial (FIIs)</option>
+          <option value="Aviso aos Acionistas" {{ 'selected' if categoria == 'Aviso aos Acionistas' else '' }}>Aviso aos Acionistas (Proventos)</option>
+          <option value="Comunicado ao Mercado" {{ 'selected' if categoria == 'Comunicado ao Mercado' else '' }}>Comunicado ao Mercado</option>
+        </select>
+      </label>
+
+      <label class="inline-flex items-center gap-2 py-2 px-3 bg-deep border border-white/[0.10] rounded-xl text-xs text-offwhite cursor-pointer">
+        <input type="checkbox" name="nao_lidos" value="1" {{ 'checked' if nao_lidos else '' }} class="accent-marine">
+        <span>Apenas não lidos</span>
+      </label>
+    </form>
+  </section>
+
+  <!-- Feed de Eventos -->
+  <section id="eventos-feed" class="space-y-3">
+    {% for item in ev.events %}
+    {% set is_fr = 'fato relevante' in item.category.lower() %}
+    {% set is_aviso = 'aviso' in item.category.lower() %}
+    <article class="bg-surface border {{ 'border-white/[0.05] opacity-70' if item.is_read else 'border-white/[0.12]' }} rounded-2xl p-5 transition-colors">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="space-y-1.5 min-w-0 flex-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="num font-semibold text-sm text-offwhite">{{ item.ticker }}</span>
+            <span class="text-[11px] px-2.5 py-0.5 rounded-full font-medium {{ 'bg-rose-500/15 text-rose-400' if is_fr else ('bg-sage/15 text-sage' if is_aviso else 'bg-marine/20 text-marine') }}">
+              {{ item.category }}
+            </span>
+            <span class="num text-xs text-muted">{{ item.published_at.strftime('%d/%m/%Y') }}</span>
+            {% if not item.is_read %}
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-400">Novo</span>
+            {% endif %}
+          </div>
+          <h3 class="text-sm font-medium text-offwhite leading-snug">{{ item.subject }}</h3>
+          <div class="text-xs text-muted">{{ item.company_name }}</div>
+
+          {% if item.ai_summary %}
+          <div class="mt-3 p-3 rounded-xl bg-deep border border-white/[0.06] text-xs text-offwhite/90">
+            <div class="flex items-center gap-2 mb-1">
+              <i class="mdi mdi-sparkles text-sage"></i>
+              <span class="font-medium text-muted">Resumo IA</span>
+              {% if item.sentiment %}
+              <span class="text-[10px] px-2 py-0.5 rounded-full {{ 'bg-sage/15 text-sage' if item.sentiment == 'positivo' else ('bg-rose-500/15 text-rose-400' if item.sentiment == 'negativo' else 'bg-white/[0.06] text-muted') }}">
+                {{ item.sentiment }}
+              </span>
+              {% endif %}
+            </div>
+            <p class="leading-relaxed">{{ item.ai_summary }}</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <a href="{{ item.document_url }}" target="_blank" rel="noopener noreferrer"
+             class="inline-flex items-center gap-1.5 bg-deep hover:bg-ink border border-white/[0.10] text-offwhite rounded-xl px-3 py-1.5 text-xs transition-colors">
+            <i class="mdi mdi-file-pdf-box text-rose-400 text-sm"></i>
+            <span>Documento CVM</span>
+          </a>
+          {% if ev.ai_enabled and not item.ai_summary %}
+          <button hx-post="/eventos/{{ item.id }}/resumir"
+                  class="inline-flex items-center gap-1 bg-evergreen hover:bg-marine border border-white/[0.10] text-offwhite rounded-xl px-3 py-1.5 text-xs transition-colors">
+            <i class="mdi mdi-text-short text-sm"></i>
+            <span>Resumir</span>
+          </button>
+          {% endif %}
+          <button hx-post="/eventos/{{ item.id }}/lido"
+                  class="inline-flex items-center gap-1 bg-deep hover:bg-ink border border-white/[0.10] text-muted hover:text-offwhite rounded-xl px-3 py-1.5 text-xs transition-colors"
+                  title="{{ 'Marcar como não lido' if item.is_read else 'Marcar como lido' }}">
+            <i class="mdi {{ 'mdi-check-all text-sage' if item.is_read else 'mdi-check' }} text-sm"></i>
+            <span>{{ 'Lido' if item.is_read else 'Marcar lido' }}</span>
+          </button>
+        </div>
+      </div>
+    </article>
+    {% else %}
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-8 text-center">
+      <i class="mdi mdi-newspaper-variant-outline text-4xl text-muted"></i>
+      <h2 class="text-base font-semibold text-offwhite mt-3">Nenhum evento sincronizado ainda</h2>
+      <p class="text-xs text-muted mt-1">
+        Clique em <strong>Sincronizar CVM</strong> para baixar os Fatos Relevantes e Avisos aos Acionistas dos seus ativos.
+      </p>
+    </div>
+    {% endfor %}
+  </section>
+{% endblock %}

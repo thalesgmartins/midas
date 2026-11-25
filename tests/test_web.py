@@ -17,6 +17,7 @@ def test_rotas_principais_respondem_200() -> None:
             "/risco",
             "/valuation",
             "/screener",
+            "/eventos",
             "/aporte",
             "/metas",
             "/importar",

@@ -12,7 +12,7 @@ from sqlmodel import Session
 from app.core.config import BASE_DIR
 from app.database.models import Asset, AssetStatus, BandMode
 from app.database.session import get_session
-from app.services import analytics, jobs, portfolio, scheduler, screener
+from app.services import analytics, events, jobs, portfolio, scheduler, screener
 from app.services.importer import ensure_classes, import_portfolio_csv, parse_brl
 from app.services.rebalance import format_brl, format_pct, plan_contribution
 
@@ -201,6 +201,57 @@ def risco_simular_metas(
         annual_rate_pct=_parse_number(taxa_anual),
     )
     return templates.TemplateResponse(request, "partials/goals_table.html", {"goals": goals})
+
+
+@router.get("/eventos", response_class=HTMLResponse)
+def eventos_page(
+    request: Request,
+    session: SessionDep,
+    ticker: str = "",
+    categoria: str = "",
+    nao_lidos: str = "",
+) -> HTMLResponse:
+    """Monitor de Fatos Relevantes e Avisos aos Acionistas da CVM."""
+    ensure_classes(session)
+    summary = portfolio.summary(session)
+    report = events.events_report(
+        session,
+        ticker_filter=ticker.strip().upper(),
+        category_filter=categoria.strip(),
+        only_unread=nao_lidos == "1",
+    )
+    context = {
+        "active_nav": "eventos",
+        "ev": report,
+        "ticker": ticker.strip().upper(),
+        "categoria": categoria.strip(),
+        "nao_lidos": nao_lidos == "1",
+        "last_quote_at": summary.last_quote_at,
+    }
+    return templates.TemplateResponse(request, "eventos.html", context)
+
+
+@router.post("/eventos/atualizar", response_class=HTMLResponse)
+def eventos_atualizar(request: Request) -> HTMLResponse:
+    """Dispara a sincronização de documentos da CVM (IPE) em background."""
+    state = jobs.trigger("events", scheduler.run_events_job, "Baixando documentos oficiais CVM...")
+    return templates.TemplateResponse(request, "partials/job_status.html", {"job": state})
+
+
+@router.post("/eventos/{event_id}/lido")
+def eventos_toggle_lido(event_id: int, session: SessionDep) -> Response:
+    """Marca ou desmarca um evento como lido."""
+    if events.toggle_read(session, event_id) is None:
+        raise HTTPException(status_code=404, detail="Evento não encontrado")
+    return Response(headers={"HX-Refresh": "true"})
+
+
+@router.post("/eventos/{event_id}/resumir")
+def eventos_resumir(event_id: int, session: SessionDep) -> Response:
+    """Gera resumo sob demanda via IA (quando GEMINI_API_KEY configurada)."""
+    if events.summarize_by_id(session, event_id) is None:
+        raise HTTPException(status_code=404, detail="Evento não encontrado")
+    return Response(headers={"HX-Refresh": "true"})
 
 
 @router.get("/aporte", response_class=HTMLResponse)
