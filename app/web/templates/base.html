@@ -26,6 +26,7 @@
         ('dashboard', '/', 'Dashboard', 'mdi-view-dashboard-outline'),
         ('estatisticas', '/estatisticas', 'Estatísticas', 'mdi-chart-box-outline'),
         ('valuation', '/valuation', 'Valuation & Proventos', 'mdi-scale-balance'),
+        ('screener', '/screener', 'Screener & Watchlist', 'mdi-radar'),
         ('aporte', '/aporte', 'Novo Aporte', 'mdi-cash-plus'),
         ('metas', '/metas', 'Metas de Alocação', 'mdi-target'),
         ('importar', '/importar', 'Importar CSV', 'mdi-file-upload-outline'),
@@ -73,7 +74,7 @@
           <i class="mdi mdi-circle text-[8px] {{ 'text-sage' if last_quote_at else 'text-muted/50' }}"></i>
           <span>
             {% if last_quote_at %}
-              Cotações: <span class="num text-offwhite">{{ last_quote_at.strftime('%d/%m %H:%M') }}</span>
+              Cotações: <span class="num text-offwhite">{{ last_quote_at|brt }}</span>
             {% else %}
               Cotações do CSV
             {% endif %}

@@ -50,7 +50,7 @@
       </div>
       <div class="text-xs text-muted mt-1.5">
         {% if v.last_updated_at %}
-          Atualizado em <span class="num text-offwhite/80">{{ v.last_updated_at.strftime('%d/%m %H:%M') }}</span>
+          Atualizado em <span class="num text-offwhite/80">{{ v.last_updated_at|brt }}</span>
         {% else %}
           Clique em "Atualizar fundamentos"
         {% endif %}

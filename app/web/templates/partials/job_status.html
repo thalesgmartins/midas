@@ -1,0 +1,23 @@
+<div id="job-{{ job.name }}"
+     {% if job.status == 'running' %}
+     hx-get="/jobs/{{ job.name }}" hx-trigger="every 2s" hx-swap="outerHTML"
+     {% endif %}
+     class="inline-flex items-center gap-2 text-xs">
+  {% if job.status == 'running' %}
+    <i class="mdi mdi-loading mdi-spin text-marine text-sm leading-none"></i>
+    <span class="text-muted">
+      {% if job.total > 0 %}
+        Atualizando <span class="num text-offwhite">{{ job.done }}/{{ job.total }}</span>
+        <span class="num text-marine">({{ job.pct }}%)</span>
+      {% else %}
+        {{ job.message or 'Atualizando...' }}
+      {% endif %}
+    </span>
+  {% elif job.status == 'done' %}
+    <i class="mdi mdi-check-circle-outline text-sage text-sm leading-none"></i>
+    <span class="text-sage">{{ job.message }}</span>
+  {% elif job.status == 'error' %}
+    <i class="mdi mdi-alert-circle-outline text-rose-400 text-sm leading-none"></i>
+    <span class="text-rose-400">{{ job.message }}</span>
+  {% endif %}
+</div>

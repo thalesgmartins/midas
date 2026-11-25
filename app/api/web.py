@@ -1,6 +1,7 @@
 """Rotas web (páginas HTML e fragmentos HTMX)."""
 
 import logging
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
@@ -11,16 +12,26 @@ from sqlmodel import Session
 from app.core.config import BASE_DIR
 from app.database.models import Asset, AssetStatus, BandMode
 from app.database.session import get_session
-from app.services import portfolio
+from app.services import jobs, portfolio, scheduler, screener
 from app.services.importer import ensure_classes, import_portfolio_csv, parse_brl
 from app.services.rebalance import format_brl, format_pct, plan_contribution
 
 logger = logging.getLogger(__name__)
 
+
+def _format_brt(dt: datetime | None) -> str:
+    if dt is None:
+        return "—"
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(scheduler.BRT).strftime("%d/%m %H:%M")
+
+
 router = APIRouter()
 templates = Jinja2Templates(directory=BASE_DIR / "app" / "web" / "templates")
 templates.env.filters["brl"] = lambda v: "—" if v is None else format_brl(v)
 templates.env.filters["pct"] = lambda v, d=1: "—" if v is None else f"{format_pct(v, d)}%"
+templates.env.filters["brt"] = _format_brt
 
 SessionDep = Annotated[Session, Depends(get_session)]
 DEFAULT_CONTRIBUTION = 400.0
@@ -77,23 +88,79 @@ def valuation_page(request: Request, session: SessionDep) -> HTMLResponse:
     return templates.TemplateResponse(request, "valuation.html", context)
 
 
-@router.post("/valuation/atualizar", response_class=HTMLResponse)
-def atualizar_fundamentos(session: SessionDep) -> HTMLResponse:
-    """Coleta fundamentos e histórico de dividendos dos ativos da carteira."""
-    from app.services.fundamentals import update_fundamentals
-
-    try:
-        updated, failed = update_fundamentals(session)
-    except Exception as exc:
-        logger.exception("Falha ao atualizar fundamentos")
-        return HTMLResponse(f'<span class="text-xs text-rose-400">Erro: {exc}</span>')
-    msg = f"{updated} ativos atualizados."
-    if failed:
-        msg += f" Falharam: {', '.join(failed)}"
-    return HTMLResponse(
-        f'<span class="text-xs text-sage">{msg}</span>',
-        headers={"HX-Refresh": "true"},
+@router.get("/jobs/{job_name}", response_class=HTMLResponse)
+def job_status(request: Request, job_name: str) -> HTMLResponse:
+    """Devolve o status/progresso da tarefa em background para polling HTMX."""
+    state = jobs.get_state(job_name)
+    headers = {"HX-Refresh": "true"} if state.status == "done" else {}
+    return templates.TemplateResponse(
+        request, "partials/job_status.html", {"job": state}, headers=headers
     )
+
+
+@router.post("/valuation/atualizar", response_class=HTMLResponse)
+def atualizar_fundamentos(request: Request) -> HTMLResponse:
+    """Dispara a coleta paralela de fundamentos em background."""
+    state = jobs.trigger(
+        "fundamentals", scheduler.run_fundamentals_job, "Coletando fundamentos e dividendos..."
+    )
+    return templates.TemplateResponse(request, "partials/job_status.html", {"job": state})
+
+
+@router.get("/screener", response_class=HTMLResponse)
+def screener_page(
+    request: Request,
+    session: SessionDep,
+    classe: str = "todos",
+    escopo: str = "todos",
+    segmento: str = "",
+) -> HTMLResponse:
+    """Screener de oportunidades fora da carteira e Watchlist."""
+    ensure_classes(session)
+    summary = portfolio.summary(session)
+    report = screener.screener_report(
+        session, class_filter=classe, scope=escopo, segment_filter=segmento
+    )
+    context = {
+        "active_nav": "screener",
+        "sc": report,
+        "classe": classe,
+        "escopo": escopo,
+        "segmento": segmento,
+        "last_quote_at": summary.last_quote_at,
+    }
+    return templates.TemplateResponse(request, "screener.html", context)
+
+
+@router.post("/screener/atualizar", response_class=HTMLResponse)
+def screener_atualizar(request: Request) -> HTMLResponse:
+    """Dispara a sincronização da B3 e avaliação paralela do Screener em background."""
+    state = jobs.trigger(
+        "screener", scheduler.run_screener_job, "Sincronizando ativos líquidos da B3..."
+    )
+    return templates.TemplateResponse(request, "partials/job_status.html", {"job": state})
+
+
+@router.post("/screener/adicionar")
+def screener_adicionar(
+    session: SessionDep,
+    ticker: Annotated[str, Form()],
+    class_name: Annotated[str, Form()] = "Ações",
+    segment: Annotated[str, Form()] = "",
+) -> RedirectResponse:
+    """Adiciona um ativo personalizado ao Screener e à Watchlist."""
+    if ticker.strip():
+        screener.add_candidate(session, ticker=ticker, class_name=class_name, segment=segment)
+    return RedirectResponse("/screener?escopo=watchlist", status_code=303)
+
+
+@router.post("/screener/{candidate_id}/watchlist")
+def screener_toggle_watchlist(candidate_id: int, session: SessionDep) -> Response:
+    """Marca ou desmarca um ativo na Watchlist pessoal."""
+    rec = screener.toggle_watchlist(session, candidate_id)
+    if rec is None:
+        raise HTTPException(status_code=404, detail="Candidato não encontrado")
+    return Response(headers={"HX-Refresh": "true"})
 
 
 @router.get("/aporte", response_class=HTMLResponse)
@@ -207,19 +274,7 @@ async def importar(request: Request, session: SessionDep, arquivo: UploadFile) -
 
 
 @router.post("/cotacoes/atualizar", response_class=HTMLResponse)
-def atualizar_cotacoes(session: SessionDep) -> HTMLResponse:
-    """Busca as cotações mais recentes."""
-    from app.services.quotes import update_quotes
-
-    try:
-        updated, failed = update_quotes(session)
-    except Exception as exc:  # yfinance propaga erros de rede de várias bibliotecas
-        logger.exception("Falha ao atualizar cotações")
-        return HTMLResponse(f'<span class="text-xs text-rose-400">Erro: {exc}</span>')
-    msg = f"{updated} cotações atualizadas."
-    if failed:
-        msg += f" Falharam: {', '.join(failed)}"
-    return HTMLResponse(
-        f'<span class="text-xs text-sage">{msg}</span>',
-        headers={"HX-Refresh": "true"},
-    )
+def atualizar_cotacoes(request: Request) -> HTMLResponse:
+    """Dispara a atualização de cotações em background."""
+    state = jobs.trigger("quotes", scheduler.run_quotes_job, "Buscando cotações na B3...")
+    return templates.TemplateResponse(request, "partials/job_status.html", {"job": state})

@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Screener & Watchlist — Midas{% endblock %}
+{% block content %}
+  <!-- Cabeçalho + Ação de Atualização -->
+  <section class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-xl font-semibold text-offwhite flex items-center gap-2">
+        <i class="mdi mdi-radar text-marine"></i>
+        <span>Screener de Oportunidades & Watchlist</span>
+      </h1>
+      <p class="text-xs text-muted mt-1">
+        Ranking qualitativo (0–100) combinando margem de segurança multi-método, rentabilidade, dividendos e setores perenes (BESST).
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="sc-spin" class="htmx-indicator text-xs text-muted">Avaliando ativos da B3...</span>
+      <div id="sc-msg"></div>
+      <button hx-post="/screener/atualizar" hx-target="#sc-msg" hx-indicator="#sc-spin"
+              class="inline-flex items-center gap-2 bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
+        <i class="mdi mdi-cloud-sync-outline text-base leading-none"></i>
+        <span>Atualizar Screener</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- 3 KPIs de Cobertura e Oportunidades -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="text-xs text-muted">Oportunidades Fora da Carteira</div>
+      <div class="num text-2xl font-semibold text-sage mt-2">{{ sc.opportunity_count }}</div>
+      <div class="text-xs text-muted mt-1.5">Ativos abaixo do preço teto que você ainda não tem</div>
+    </div>
+
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="text-xs text-muted">Cobertura BESST (Setores Perenes)</div>
+      <div class="num text-2xl font-semibold text-offwhite mt-2">
+        {{ sc.covered_besst|length }} <span class="text-base text-muted font-normal">/ 5</span>
+      </div>
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        {% for s in sc.covered_besst %}
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-sage/15 text-sage">{{ s }}</span>
+        {% endfor %}
+        {% for s in sc.missing_besst %}
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-400">Falta: {{ s }}</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+      <div class="text-xs text-muted">Na sua Watchlist</div>
+      <div class="num text-2xl font-semibold text-marine mt-2">{{ sc.watchlist_count }}</div>
+      <div class="text-xs text-muted mt-1.5">
+        {% if sc.last_updated_at %}
+          Atualizado em <span class="num text-offwhite/80">{{ sc.last_updated_at|brt }}</span>
+        {% else %}
+          Clique em "Atualizar Screener" para pontuar
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Barra de Filtros + Adicionar Ticker Personalizado -->
+  <section class="bg-surface border border-white/[0.08] rounded-2xl p-5 mb-6 flex flex-wrap items-end justify-between gap-4">
+    <form id="screener-filters" method="get" action="/screener"
+          hx-get="/screener" hx-target="#screener-results" hx-select="#screener-results" hx-push-url="true" hx-trigger="change"
+          class="flex flex-wrap items-end gap-3">
+      <label class="block">
+        <span class="text-[11px] uppercase tracking-wider text-muted block mb-1">Classe</span>
+        <select name="classe" onchange="document.getElementById('filter-segmento').value=''"
+                class="bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-xl px-3 py-2 text-xs text-offwhite">
+          <option value="todos" {{ 'selected' if classe == 'todos' else '' }}>Todas</option>
+          <option value="Ações" {{ 'selected' if classe == 'Ações' else '' }}>Ações</option>
+          <option value="FIIs" {{ 'selected' if classe == 'FIIs' else '' }}>FIIs</option>
+        </select>
+      </label>
+
+      <label class="block">
+        <span class="text-[11px] uppercase tracking-wider text-muted block mb-1">Escopo</span>
+        <select name="escopo"
+                class="bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-xl px-3 py-2 text-xs text-offwhite">
+          <option value="todos" {{ 'selected' if escopo == 'todos' else '' }}>Todos os ativos</option>
+          <option value="qualidade" {{ 'selected' if escopo == 'qualidade' else '' }}>Sem alertas (alta qualidade)</option>
+          <option value="fora" {{ 'selected' if escopo == 'fora' else '' }}>Fora da carteira</option>
+          <option value="watchlist" {{ 'selected' if escopo == 'watchlist' else '' }}>Minha Watchlist</option>
+          <option value="besst" {{ 'selected' if escopo == 'besst' else '' }}>Setores Perenes (BESST)</option>
+        </select>
+      </label>
+
+      <label class="block">
+        <span class="text-[11px] uppercase tracking-wider text-muted block mb-1">Segmento</span>
+        <select id="filter-segmento" name="segmento"
+                class="bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-xl px-3 py-2 text-xs text-offwhite">
+          <option value="">Todos</option>
+          {% for seg in sc.segments %}
+          <option value="{{ seg }}" {{ 'selected' if segmento == seg else '' }}>{{ seg }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <button type="submit" class="bg-deep hover:bg-ink border border-white/[0.10] text-muted hover:text-offwhite rounded-xl px-3 py-2 text-xs transition-colors">
+        Filtrar
+      </button>
+    </form>
+
+    <form method="post" action="/screener/adicionar" class="flex flex-wrap items-end gap-2">
+      <label class="block">
+        <span class="text-[11px] uppercase tracking-wider text-muted block mb-1">Adicionar ticker</span>
+        <input name="ticker" required placeholder="Ex: TAEE11"
+               class="num uppercase w-28 bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-xl px-3 py-2 text-xs text-offwhite placeholder:text-muted/60">
+      </label>
+      <select name="class_name"
+              class="bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-xl px-3 py-2 text-xs text-offwhite">
+        <option value="Ações">Ações</option>
+        <option value="FIIs">FIIs</option>
+      </select>
+      <input name="segment" placeholder="Segmento (opcional)"
+             class="w-36 bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-xl px-3 py-2 text-xs text-offwhite placeholder:text-muted/60">
+      <button class="inline-flex items-center gap-1 bg-evergreen hover:bg-marine border border-white/[0.10] text-offwhite rounded-xl px-3.5 py-2 text-xs font-medium transition-colors">
+        <i class="mdi mdi-plus text-sm leading-none"></i>
+        <span>Adicionar</span>
+      </button>
+    </form>
+  </section>
+
+  <!-- Tabela de Ranking -->
+  <section id="screener-results" class="bg-surface border border-white/[0.08] rounded-2xl p-6 overflow-x-auto">
+    <div class="flex items-center justify-between mb-3 text-xs text-muted">
+      <span>Exibindo <strong class="num text-offwhite">{{ sc.items|length }}</strong> {{ 'ativo' if sc.items|length == 1 else 'ativos' }}</span>
+    </div>
+    <table class="w-full text-sm">
+      <thead class="text-[11px] uppercase tracking-wider text-muted border-b border-white/[0.08]">
+        <tr>
+          <th class="py-2.5 w-8 text-center font-medium"><i class="mdi mdi-star-outline"></i></th>
+          <th class="py-2.5 text-left font-medium">Ativo</th>
+          <th class="py-2.5 text-left font-medium">Segmento</th>
+          <th class="py-2.5 text-right font-medium">Atual</th>
+          <th class="py-2.5 text-right font-medium">Teto Consenso</th>
+          <th class="py-2.5 text-right font-medium">Margem</th>
+          <th class="py-2.5 text-right font-medium">DY</th>
+          <th class="py-2.5 text-right font-medium">ROE / P/VP</th>
+          <th class="py-2.5 text-right font-medium">PEG</th>
+          <th class="py-2.5 pl-4 text-left font-medium">Score (0–100)</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-white/[0.06]">
+        {% for item in sc.items %}
+        {% set rec = item.record %}{% set v = item.valuation %}
+        <tr class="hover:bg-white/[0.03] transition-colors">
+          <td class="py-3 text-center">
+            <button hx-post="/screener/{{ rec.id }}/watchlist" title="Alternar na Watchlist"
+                    class="text-base leading-none transition-colors {{ 'text-amber-400' if rec.in_watchlist else 'text-muted/40 hover:text-offwhite' }}">
+              <i class="mdi {{ 'mdi-star' if rec.in_watchlist else 'mdi-star-outline' }}"></i>
+            </button>
+          </td>
+          <td class="py-3 pr-3">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="font-semibold text-offwhite">{{ rec.ticker }}</span>
+              {% if item.in_portfolio %}
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-sage/15 text-sage">na carteira</span>
+              {% endif %}
+              {% if rec.is_perennial %}
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-marine/20 text-marine">BESST</span>
+              {% endif %}
+            </div>
+            <div class="text-[11px] text-muted">{{ rec.class_name }}</div>
+            {% if item.flags %}
+            <div class="mt-1 flex flex-wrap gap-1">
+              {% for flag in item.flags %}
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400">{{ flag }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </td>
+          <td class="py-3 pr-3 text-xs text-muted">{{ rec.segment or '—' }}</td>
+          <td class="py-3 text-right num text-offwhite">{{ rec.current_price|brl if rec.current_price else '—' }}</td>
+          <td class="py-3 text-right num font-medium text-offwhite">{{ v.consensus_ceiling|brl }}</td>
+          <td class="py-3 text-right num font-medium {{ 'text-sage' if v.margin_of_safety_pct and v.margin_of_safety_pct >= 0 else 'text-rose-400' }}">
+            {{ ('%+.1f%%'|format(v.margin_of_safety_pct)|replace('.', ',')) if v.margin_of_safety_pct is not none else '—' }}
+          </td>
+          <td class="py-3 text-right num text-offwhite">{{ v.dy_pct|pct(1) }}</td>
+          <td class="py-3 text-right num text-xs text-muted">
+            {% if rec.class_name == 'FIIs' %}
+              P/VP <span class="{{ 'text-sage' if v.pvp and v.pvp <= 1 else 'text-amber-400' }}">{{ '%.2f'|format(v.pvp)|replace('.', ',') if v.pvp else '—' }}</span>
+            {% else %}
+              ROE <span class="{{ 'text-sage' if v.roe_pct and v.roe_pct >= 15 else 'text-offwhite' }}">{{ v.roe_pct|pct(0) }}</span>
+            {% endif %}
+          </td>
+          <td class="py-3 text-right num text-xs {{ 'text-sage' if v.peg and v.peg <= 1 else 'text-muted' }}">
+            {{ '%.2f'|format(v.peg)|replace('.', ',') if v.peg else '—' }}
+          </td>
+          <td class="py-3 pl-4 w-36">
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-1.5 bg-deep rounded-full overflow-hidden">
+                <div class="h-full rounded-full {{ 'bg-sage' if item.score >= 70 else ('bg-marine' if item.score >= 45 else 'bg-muted/40') }}"
+                     style="width: {{ item.score }}%"></div>
+              </div>
+              <span class="num text-xs font-semibold w-7 text-right {{ 'text-sage' if item.score >= 70 else ('text-marine' if item.score >= 45 else 'text-muted') }}">{{ item.score }}</span>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10" class="py-8 text-center text-sm text-muted">Nenhum ativo encontrado com os filtros selecionados.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endblock %}
