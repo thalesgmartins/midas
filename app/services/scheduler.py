@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 from sqlmodel import Session
 
-from app.services import fundamentals, jobs, quotes, screener
+from app.services import analytics, fundamentals, jobs, quotes, screener
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,14 @@ def run_screener_job(session: Session, on_progress: jobs.ProgressCallback) -> st
     if added:
         msg += f" (+{added} novos da B3)"
     return f"{msg}. Falharam: {len(failed)}" if failed else f"{msg}."
+
+
+def run_risk_job(session: Session, on_progress: jobs.ProgressCallback) -> str:
+    """Atualiza o histórico de fechamentos (2 anos) da carteira e do IBOV."""
+    updated, failed = analytics.update_price_history(session)
+    on_progress(updated, updated + len(failed))
+    msg = f"Histórico atualizado para {updated} ativos."
+    return f"{msg} Sem dados: {len(failed)}" if failed else msg
 
 
 async def scheduler_loop() -> None:
