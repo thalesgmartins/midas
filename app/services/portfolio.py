@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlmodel import Session, col, select
 
 from app.database.models import Asset, AssetClass, AssetFundamentals, AssetStatus
-from app.services.rebalance import AssetInput, ClassInput, band_bounds
+from app.services.rebalance import AssetInput, ClassInput, Plan, band_bounds
 from app.services.valuation import ValuationInput, ValuationResult, evaluate_asset
 
 
@@ -258,3 +258,42 @@ def to_engine_inputs(session: Session) -> tuple[list[ClassInput], list[AssetInpu
     return [
         ClassInput(c.name, c.target_pct, c.band_pp, c.band_mode) for c in classes
     ], engine_assets
+
+
+def apply_contribution_plan(session: Session, plan: Plan) -> int:
+    """Registra na carteira as compras sugeridas por um plano de aporte.
+
+    Atualiza quantidades e recalcula o preço médio ponderado para ativos de renda
+    variável, ou soma o valor ao saldo de ativos divisíveis (renda fixa).
+
+    Args:
+        session: Sessão do banco.
+        plan: Plano gerado por ``plan_contribution``.
+
+    Returns:
+        Número de ativos atualizados.
+    """
+    updated = 0
+    for buy in plan.buys:
+        if buy.amount <= 0:
+            continue
+        asset = session.exec(select(Asset).where(Asset.ticker == buy.ticker)).first()
+        if asset is None:
+            continue
+        if asset.divisible:
+            asset.balance = round(asset.balance + buy.amount, 2)
+        else:
+            units = float(buy.units)
+            if units <= 0:
+                continue
+            new_qty = asset.quantity + units
+            total_cost = asset.quantity * asset.avg_price + units * buy.price
+            asset.quantity = new_qty
+            asset.avg_price = round(total_cost / new_qty, 4) if new_qty > 0 else buy.price
+            if buy.price > 0:
+                asset.current_price = buy.price
+        session.add(asset)
+        updated += 1
+    if updated:
+        session.commit()
+    return updated

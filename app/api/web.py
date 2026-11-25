@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 
+from app.core import config
 from app.core.config import BASE_DIR
 from app.database.models import Asset, AssetStatus, BandMode
 from app.database.session import get_session
@@ -42,21 +43,38 @@ def _parse_number(raw: str) -> float:
     return parse_brl(raw) if "," in raw else float(raw)
 
 
+def _base_context(request: Request, session: Session, active_nav: str) -> dict[str, object]:
+    """Contexto compartilhado entre todas as telas (sidebar, badge de eventos, usuário)."""
+    summary = portfolio.summary(session)
+    unread_events = events.events_report(session).unread_count
+    user = getattr(request.state, "user", None)
+    return {
+        "active_nav": active_nav,
+        "last_quote_at": summary.last_quote_at,
+        "unread_events": unread_events,
+        "auth_enabled": config.is_auth_enabled(),
+        "current_user": user,
+    }
+
+
 @router.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, session: SessionDep) -> HTMLResponse:
-    """Dashboard operacional: simulador de aporte rápido, prioridades e plano."""
+    """Central de decisão: sinais do dia, simulador de aporte e pulso da carteira."""
     ensure_classes(session)
     summary = portfolio.summary(session)
+    val_summary = portfolio.valuation_report(session)
     classes, assets = portfolio.to_engine_inputs(session)
     plan = plan_contribution(DEFAULT_CONTRIBUTION, classes, assets) if summary.total > 0 else None
-    context = {
-        "active_nav": "dashboard",
-        "s": summary,
-        "plan": plan,
-        "default_amount": int(DEFAULT_CONTRIBUTION),
-        "last_quote_at": summary.last_quote_at,
-    }
-    return templates.TemplateResponse(request, "dashboard.html", context)
+    ctx = _base_context(request, session, "dashboard")
+    ctx.update(
+        {
+            "s": summary,
+            "v": val_summary,
+            "plan": plan,
+            "default_amount": int(DEFAULT_CONTRIBUTION),
+        }
+    )
+    return templates.TemplateResponse(request, "dashboard.html", ctx)
 
 
 @router.get("/estatisticas", response_class=HTMLResponse)
@@ -64,28 +82,18 @@ def estatisticas_page(request: Request, session: SessionDep, q: str = "") -> HTM
     """Visão analítica: KPIs, mapa de alocação, segmentos e tabela completa."""
     ensure_classes(session)
     summary = portfolio.summary(session)
-    context = {
-        "active_nav": "estatisticas",
-        "s": summary,
-        "statuses": list(AssetStatus),
-        "query": q.strip(),
-        "last_quote_at": summary.last_quote_at,
-    }
-    return templates.TemplateResponse(request, "estatisticas.html", context)
+    ctx = _base_context(request, session, "estatisticas")
+    ctx.update({"s": summary, "statuses": list(AssetStatus), "query": q.strip()})
+    return templates.TemplateResponse(request, "estatisticas.html", ctx)
 
 
 @router.get("/valuation", response_class=HTMLResponse)
 def valuation_page(request: Request, session: SessionDep) -> HTMLResponse:
     """Valuation multi-método (Graham, Bazin, Lynch/PEG, FIIs) e proventos."""
     ensure_classes(session)
-    summary = portfolio.summary(session)
-    report = portfolio.valuation_report(session)
-    context = {
-        "active_nav": "valuation",
-        "v": report,
-        "last_quote_at": summary.last_quote_at,
-    }
-    return templates.TemplateResponse(request, "valuation.html", context)
+    ctx = _base_context(request, session, "valuation")
+    ctx["v"] = portfolio.valuation_report(session)
+    return templates.TemplateResponse(request, "valuation.html", ctx)
 
 
 @router.get("/jobs/{job_name}", response_class=HTMLResponse)
@@ -117,19 +125,12 @@ def screener_page(
 ) -> HTMLResponse:
     """Screener de oportunidades fora da carteira e Watchlist."""
     ensure_classes(session)
-    summary = portfolio.summary(session)
     report = screener.screener_report(
         session, class_filter=classe, scope=escopo, segment_filter=segmento
     )
-    context = {
-        "active_nav": "screener",
-        "sc": report,
-        "classe": classe,
-        "escopo": escopo,
-        "segmento": segmento,
-        "last_quote_at": summary.last_quote_at,
-    }
-    return templates.TemplateResponse(request, "screener.html", context)
+    ctx = _base_context(request, session, "screener")
+    ctx.update({"sc": report, "classe": classe, "escopo": escopo, "segmento": segmento})
+    return templates.TemplateResponse(request, "screener.html", ctx)
 
 
 @router.post("/screener/atualizar", response_class=HTMLResponse)
@@ -167,16 +168,10 @@ def screener_toggle_watchlist(candidate_id: int, session: SessionDep) -> Respons
 def risco_page(request: Request, session: SessionDep) -> HTMLResponse:
     """Análise estatística: volatilidade, drawdown, correlação, cenários e metas."""
     ensure_classes(session)
-    summary = portfolio.summary(session)
     report = analytics.build_risk_report(session, monthly_contribution=DEFAULT_CONTRIBUTION)
-    context = {
-        "active_nav": "risco",
-        "r": report,
-        "aporte_mensal": int(DEFAULT_CONTRIBUTION),
-        "taxa_anual": 10,
-        "last_quote_at": summary.last_quote_at,
-    }
-    return templates.TemplateResponse(request, "risco.html", context)
+    ctx = _base_context(request, session, "risco")
+    ctx.update({"r": report, "aporte_mensal": int(DEFAULT_CONTRIBUTION), "taxa_anual": 10})
+    return templates.TemplateResponse(request, "risco.html", ctx)
 
 
 @router.post("/risco/atualizar", response_class=HTMLResponse)
@@ -213,22 +208,22 @@ def eventos_page(
 ) -> HTMLResponse:
     """Monitor de Fatos Relevantes e Avisos aos Acionistas da CVM."""
     ensure_classes(session)
-    summary = portfolio.summary(session)
     report = events.events_report(
         session,
         ticker_filter=ticker.strip().upper(),
         category_filter=categoria.strip(),
         only_unread=nao_lidos == "1",
     )
-    context = {
-        "active_nav": "eventos",
-        "ev": report,
-        "ticker": ticker.strip().upper(),
-        "categoria": categoria.strip(),
-        "nao_lidos": nao_lidos == "1",
-        "last_quote_at": summary.last_quote_at,
-    }
-    return templates.TemplateResponse(request, "eventos.html", context)
+    ctx = _base_context(request, session, "eventos")
+    ctx.update(
+        {
+            "ev": report,
+            "ticker": ticker.strip().upper(),
+            "categoria": categoria.strip(),
+            "nao_lidos": nao_lidos == "1",
+        }
+    )
+    return templates.TemplateResponse(request, "eventos.html", ctx)
 
 
 @router.post("/eventos/atualizar", response_class=HTMLResponse)
@@ -257,13 +252,9 @@ def eventos_resumir(event_id: int, session: SessionDep) -> Response:
 @router.get("/aporte", response_class=HTMLResponse)
 def aporte_page(request: Request, session: SessionDep) -> HTMLResponse:
     """Página dedicada de simulação de aporte."""
-    summary = portfolio.summary(session)
-    context = {
-        "active_nav": "aporte",
-        "default_amount": int(DEFAULT_CONTRIBUTION),
-        "last_quote_at": summary.last_quote_at,
-    }
-    return templates.TemplateResponse(request, "aporte.html", context)
+    ctx = _base_context(request, session, "dashboard")
+    ctx["default_amount"] = int(DEFAULT_CONTRIBUTION)
+    return templates.TemplateResponse(request, "aporte.html", ctx)
 
 
 @router.post("/aporte/simular", response_class=HTMLResponse)
@@ -275,6 +266,18 @@ def aporte_simular(
     plan = plan_contribution(_parse_number(valor), classes, assets)
     return templates.TemplateResponse(
         request, "partials/plan.html", {"plan": plan, "oob_priorities": True}
+    )
+
+
+@router.post("/aporte/aplicar", response_class=HTMLResponse)
+def aporte_aplicar(session: SessionDep, valor: Annotated[str, Form()]) -> HTMLResponse:
+    """Aplica o plano de aporte calculado diretamente nas posições da carteira."""
+    classes, assets = portfolio.to_engine_inputs(session)
+    plan = plan_contribution(_parse_number(valor), classes, assets)
+    count = portfolio.apply_contribution_plan(session, plan)
+    return HTMLResponse(
+        f'<span class="text-xs text-sage">{count} ativos atualizados na carteira!</span>',
+        headers={"HX-Refresh": "true"},
     )
 
 
