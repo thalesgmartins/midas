@@ -3,72 +3,91 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Acesso — Midas</title>
+  <title>Midas — Acesso à Carteira</title>
   <link rel="stylesheet" href="/static/css/tailwind.min.css">
   <link rel="stylesheet" href="/static/css/materialdesignicons.min.css">
+  <style>
+    .beam-pillar-1 {
+      background: linear-gradient(to top, rgba(113, 154, 114, 0.85) 0%, rgba(33, 116, 196, 0.7) 45%, rgba(33, 116, 196, 0) 100%);
+    }
+    .beam-pillar-2 {
+      background: linear-gradient(to top, rgba(240, 244, 245, 0.88) 0%, rgba(33, 116, 196, 0.85) 38%, rgba(9, 46, 59, 0.3) 75%, rgba(9, 46, 59, 0) 100%);
+    }
+    .beam-pillar-3 {
+      background: linear-gradient(to top, rgba(33, 116, 196, 0.9) 0%, rgba(9, 46, 59, 0.65) 55%, rgba(9, 46, 59, 0) 100%);
+    }
+    .beam-pillar-4 {
+      background: linear-gradient(to top, rgba(113, 154, 114, 0.6) 0%, rgba(9, 46, 59, 0.4) 50%, rgba(9, 46, 59, 0) 100%);
+    }
+    .beam-ambient {
+      background: radial-gradient(ellipse at 25% 100%, rgba(33, 116, 196, 0.55) 0%, rgba(1, 22, 28, 0) 70%);
+    }
+  </style>
 </head>
-<body class="bg-ink text-offwhite font-sans antialiased min-h-screen flex">
-  <div class="w-full min-h-screen grid grid-cols-1 lg:grid-cols-12">
-    <!-- Painel Esquerdo: Identidade Visual -->
-    <div class="hidden lg:flex lg:col-span-6 relative overflow-hidden bg-ink p-12 flex-col justify-between border-r border-white/[0.08]">
-      <div class="absolute inset-0 pointer-events-none"
-           style="background: radial-gradient(circle at 18% 20%, rgba(33,116,196,0.22), transparent 48%), radial-gradient(circle at 82% 78%, rgba(113,154,114,0.16), transparent 45%), linear-gradient(135deg, #021f27 0%, #092e3b 55%, #01161c 100%);"></div>
+<body class="bg-ink text-offwhite min-h-screen flex items-center justify-center p-3 sm:p-6 lg:p-10 font-sans antialiased">
 
-      <div class="relative z-10 flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-hero border border-white/[0.12] flex items-center justify-center">
-          <i class="mdi mdi-finance text-sage text-xl leading-none"></i>
-        </div>
-        <div>
-          <span class="font-semibold tracking-wide text-offwhite text-lg">Midas</span>
-          <span class="block text-[10px] uppercase tracking-widest text-muted">Copiloto de Carteira</span>
-        </div>
-      </div>
+  <main class="w-full max-w-5xl bg-surface rounded-[24px] p-3 sm:p-4 border border-white/[0.08] shadow-2xl grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[520px]">
 
-      <div class="relative z-10 max-w-lg">
-        <h1 class="text-4xl font-semibold text-offwhite leading-tight tracking-tight">
+    <!-- Painel Esquerdo: Apresentação Visual com Feixes Verticais -->
+    <section class="hidden lg:flex lg:col-span-5 bg-deep rounded-[18px] p-8 sm:p-10 flex-col justify-between relative overflow-hidden border border-white/[0.06] min-h-full">
+      <div class="relative z-20 space-y-4">
+        <h1 class="text-2xl sm:text-3xl lg:text-[32px] font-semibold text-offwhite tracking-tight leading-[1.2]">
           Aloque seus aportes com precisão e clareza.
         </h1>
-        <p class="text-sm text-muted mt-4 leading-relaxed">
-          Rebalanceamento por bandas, preço teto multi-método, screener anti-armadilha de valor, análise de risco e fatos relevantes da CVM — tudo em um único cofre pessoal.
+        <p class="text-sm text-muted leading-relaxed max-w-xs">
+          Rebalanceamento por bandas, preço teto multi-método, análise de risco e fatos relevantes da CVM em um único cofre pessoal.
         </p>
       </div>
 
-      <div class="relative z-10 flex items-center gap-6 text-xs text-muted">
-        <span class="inline-flex items-center gap-1.5"><i class="mdi mdi-lock-outline text-sage"></i> Acesso restrito via Google OAuth</span>
-        <span class="inline-flex items-center gap-1.5"><i class="mdi mdi-shield-check-outline text-marine"></i> Dados locais no seu servidor</span>
+      <!-- Feixes verticais na paleta Midas (Sage Green + Bright Marine) -->
+      <div class="beam-ambient absolute inset-0 pointer-events-none z-0"></div>
+      <div class="absolute bottom-0 left-0 right-0 h-72 flex items-end pointer-events-none z-10 opacity-90">
+        <div class="w-12 sm:w-14 h-48 beam-pillar-1 blur-[2px] border-r border-white/10"></div>
+        <div class="w-14 sm:w-16 h-64 beam-pillar-2 blur-[1px] border-r border-white/20"></div>
+        <div class="w-14 sm:w-16 h-56 beam-pillar-3 blur-[1px] border-r border-white/10"></div>
+        <div class="w-14 sm:w-16 h-40 beam-pillar-4 blur-[2px] border-r border-white/5"></div>
+        <div class="w-14 sm:w-16 h-24 beam-pillar-4 opacity-50 blur-[4px]"></div>
       </div>
-    </div>
+    </section>
 
-    <!-- Painel Direito: Acesso ao Cofre -->
-    <div class="lg:col-span-6 bg-surface flex items-center justify-center p-6 sm:p-12">
-      <div class="w-full max-w-md bg-deep/70 border border-white/[0.08] rounded-2xl p-8">
-        <div class="flex items-center gap-3 mb-6 lg:hidden">
-          <div class="w-9 h-9 rounded-xl bg-hero border border-white/[0.12] flex items-center justify-center">
-            <i class="mdi mdi-finance text-sage text-lg leading-none"></i>
+    <!-- Painel Direito: Acesso Exclusivo Google -->
+    <section class="lg:col-span-7 bg-surface rounded-[18px] px-4 py-6 sm:px-12 sm:py-10 flex flex-col justify-center">
+      <div class="w-full max-w-md mx-auto">
+
+        <!-- Marca Midas -->
+        <div class="flex items-center gap-3 mb-7">
+          <div class="w-10 h-10 rounded-xl bg-hero border border-marine/30 shadow-md flex items-center justify-center">
+            <i class="mdi mdi-finance text-sage text-xl leading-none"></i>
           </div>
-          <span class="font-semibold text-offwhite text-lg">Midas</span>
+          <div>
+            <span class="text-xl font-bold tracking-tight text-offwhite">Midas</span>
+            <span class="block text-[10px] uppercase tracking-widest text-muted">Copiloto de Carteira</span>
+          </div>
         </div>
 
-        <span class="text-[11px] uppercase tracking-widest text-marine font-medium">Acesso Pessoal</span>
-        <h2 class="text-2xl font-semibold text-offwhite mt-1">Entrar na carteira</h2>
-        <p class="text-xs text-muted mt-1.5 leading-relaxed">
-          A autenticação é validada exclusivamente contra a conta Google autorizada no servidor.
-        </p>
+        <!-- Cabeçalho -->
+        <div class="pb-6 mb-6 border-b border-white/[0.08]">
+          <h2 class="text-2xl sm:text-3xl font-bold text-offwhite tracking-tight">
+            Bem-vindo de volta
+          </h2>
+          <p class="text-sm text-muted mt-1.5">
+            Acesse sua carteira com sua conta Google autorizada
+          </p>
+        </div>
 
         {% if error_message %}
-        <div class="mt-5 p-3.5 rounded-xl bg-rose-500/15 border border-rose-400/30 text-rose-300 text-xs flex items-start gap-2">
-          <i class="mdi mdi-shield-alert-outline text-base leading-none mt-0.5 shrink-0"></i>
+        <div class="mb-6 p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs flex items-center gap-2.5">
+          <i class="mdi mdi-shield-alert-outline text-base leading-none shrink-0"></i>
           <span>{{ error_message }}</span>
         </div>
         {% endif %}
 
-        <div class="mt-6">
-          <a href="/auth/google"
-             class="w-full flex items-center justify-center gap-3 bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-5 py-3 text-sm font-medium transition-colors">
-            <i class="mdi mdi-google text-lg leading-none"></i>
-            <span>Continuar com Google</span>
-          </a>
-        </div>
+        <!-- Botão Principal Google OAuth -->
+        <a href="/auth/google"
+           class="w-full flex items-center justify-center gap-3 py-3.5 px-5 bg-marine hover:bg-marine/90 text-offwhite font-semibold text-sm rounded-xl shadow-lg shadow-marine/25 transition-all">
+          <i class="mdi mdi-google text-lg leading-none"></i>
+          <span>Continuar com Google</span>
+        </a>
 
         {% if not oauth_configured %}
         <div class="mt-4 p-3 rounded-xl bg-amber-400/10 border border-amber-400/25 text-amber-300 text-[11px] leading-relaxed">
@@ -76,11 +95,18 @@
         </div>
         {% endif %}
 
-        <div class="mt-6 pt-5 border-t border-white/[0.06] text-[11px] text-muted text-center">
-          Sessão protegida por cookie assinado HttpOnly · Sem acesso público
+        <div class="mt-8 pt-5 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-muted">
+          <span class="inline-flex items-center gap-1.5">
+            <i class="mdi mdi-lock-outline text-sage"></i> Acesso restrito
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <i class="mdi mdi-shield-check-outline text-marine"></i> Cookie assinado HttpOnly
+          </span>
         </div>
+
       </div>
-    </div>
-  </div>
+    </section>
+
+  </main>
 </body>
 </html>
