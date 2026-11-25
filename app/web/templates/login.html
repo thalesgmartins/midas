@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acesso — Midas</title>
+  <link rel="stylesheet" href="/static/css/tailwind.min.css">
+  <link rel="stylesheet" href="/static/css/materialdesignicons.min.css">
+</head>
+<body class="bg-ink text-offwhite font-sans antialiased min-h-screen flex">
+  <div class="w-full min-h-screen grid grid-cols-1 lg:grid-cols-12">
+    <!-- Painel Esquerdo: Identidade Visual -->
+    <div class="hidden lg:flex lg:col-span-6 relative overflow-hidden bg-ink p-12 flex-col justify-between border-r border-white/[0.08]">
+      <div class="absolute inset-0 pointer-events-none"
+           style="background: radial-gradient(circle at 18% 20%, rgba(33,116,196,0.22), transparent 48%), radial-gradient(circle at 82% 78%, rgba(113,154,114,0.16), transparent 45%), linear-gradient(135deg, #021f27 0%, #092e3b 55%, #01161c 100%);"></div>
+
+      <div class="relative z-10 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-hero border border-white/[0.12] flex items-center justify-center">
+          <i class="mdi mdi-finance text-sage text-xl leading-none"></i>
+        </div>
+        <div>
+          <span class="font-semibold tracking-wide text-offwhite text-lg">Midas</span>
+          <span class="block text-[10px] uppercase tracking-widest text-muted">Copiloto de Carteira</span>
+        </div>
+      </div>
+
+      <div class="relative z-10 max-w-lg">
+        <h1 class="text-4xl font-semibold text-offwhite leading-tight tracking-tight">
+          Aloque seus aportes com precisão e clareza.
+        </h1>
+        <p class="text-sm text-muted mt-4 leading-relaxed">
+          Rebalanceamento por bandas, preço teto multi-método, screener anti-armadilha de valor, análise de risco e fatos relevantes da CVM — tudo em um único cofre pessoal.
+        </p>
+      </div>
+
+      <div class="relative z-10 flex items-center gap-6 text-xs text-muted">
+        <span class="inline-flex items-center gap-1.5"><i class="mdi mdi-lock-outline text-sage"></i> Acesso restrito via Google OAuth</span>
+        <span class="inline-flex items-center gap-1.5"><i class="mdi mdi-shield-check-outline text-marine"></i> Dados locais no seu servidor</span>
+      </div>
+    </div>
+
+    <!-- Painel Direito: Acesso ao Cofre -->
+    <div class="lg:col-span-6 bg-surface flex items-center justify-center p-6 sm:p-12">
+      <div class="w-full max-w-md bg-deep/70 border border-white/[0.08] rounded-2xl p-8">
+        <div class="flex items-center gap-3 mb-6 lg:hidden">
+          <div class="w-9 h-9 rounded-xl bg-hero border border-white/[0.12] flex items-center justify-center">
+            <i class="mdi mdi-finance text-sage text-lg leading-none"></i>
+          </div>
+          <span class="font-semibold text-offwhite text-lg">Midas</span>
+        </div>
+
+        <span class="text-[11px] uppercase tracking-widest text-marine font-medium">Acesso Pessoal</span>
+        <h2 class="text-2xl font-semibold text-offwhite mt-1">Entrar na carteira</h2>
+        <p class="text-xs text-muted mt-1.5 leading-relaxed">
+          A autenticação é validada exclusivamente contra a conta Google autorizada no servidor.
+        </p>
+
+        {% if error_message %}
+        <div class="mt-5 p-3.5 rounded-xl bg-rose-500/15 border border-rose-400/30 text-rose-300 text-xs flex items-start gap-2">
+          <i class="mdi mdi-shield-alert-outline text-base leading-none mt-0.5 shrink-0"></i>
+          <span>{{ error_message }}</span>
+        </div>
+        {% endif %}
+
+        <div class="mt-6">
+          <a href="/auth/google"
+             class="w-full flex items-center justify-center gap-3 bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-5 py-3 text-sm font-medium transition-colors">
+            <i class="mdi mdi-google text-lg leading-none"></i>
+            <span>Continuar com Google</span>
+          </a>
+        </div>
+
+        {% if not oauth_configured %}
+        <div class="mt-4 p-3 rounded-xl bg-amber-400/10 border border-amber-400/25 text-amber-300 text-[11px] leading-relaxed">
+          Modo desenvolvimento local: <code class="num">GOOGLE_CLIENT_ID</code> não definido no <code>.env</code>. Você pode <a href="/" class="underline text-offwhite">acessar direto</a>.
+        </div>
+        {% endif %}
+
+        <div class="mt-6 pt-5 border-t border-white/[0.06] text-[11px] text-muted text-center">
+          Sessão protegida por cookie assinado HttpOnly · Sem acesso público
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
