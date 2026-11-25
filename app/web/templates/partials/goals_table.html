@@ -1,0 +1,33 @@
+<div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="text-[11px] uppercase tracking-wider text-muted border-b border-white/[0.08]">
+      <tr>
+        <th class="py-2 text-left font-medium">Marco</th>
+        <th class="py-2 text-left font-medium">Progresso Atual</th>
+        <th class="py-2 text-right font-medium">Meses</th>
+        <th class="py-2 text-right font-medium">Anos</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-white/[0.06]">
+      {% for g in goals %}
+      <tr class="hover:bg-white/[0.02]">
+        <td class="py-2.5 font-semibold num text-offwhite">{{ g.target|brl }}</td>
+        <td class="py-2.5 pr-4 w-56">
+          <div class="flex items-center gap-2">
+            <div class="flex-1 h-1.5 bg-deep rounded-full overflow-hidden">
+              <div class="h-full rounded-full {{ 'bg-sage' if g.reached else 'bg-marine' }}" style="width: {{ g.progress_pct }}%"></div>
+            </div>
+            <span class="num text-xs text-muted w-12 text-right">{{ g.progress_pct|pct(0) }}</span>
+          </div>
+        </td>
+        <td class="py-2.5 text-right num {{ 'text-sage font-medium' if g.reached else 'text-offwhite' }}">
+          {{ 'Atingido' if g.reached else g.months }}
+        </td>
+        <td class="py-2.5 text-right num text-muted">
+          {{ '—' if g.reached else ('%.1f a'|format(g.years)|replace('.', ',')) }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

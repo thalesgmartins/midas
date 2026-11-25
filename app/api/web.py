@@ -12,7 +12,7 @@ from sqlmodel import Session
 from app.core.config import BASE_DIR
 from app.database.models import Asset, AssetStatus, BandMode
 from app.database.session import get_session
-from app.services import jobs, portfolio, scheduler, screener
+from app.services import analytics, jobs, portfolio, scheduler, screener
 from app.services.importer import ensure_classes, import_portfolio_csv, parse_brl
 from app.services.rebalance import format_brl, format_pct, plan_contribution
 
@@ -161,6 +161,46 @@ def screener_toggle_watchlist(candidate_id: int, session: SessionDep) -> Respons
     if rec is None:
         raise HTTPException(status_code=404, detail="Candidato não encontrado")
     return Response(headers={"HX-Refresh": "true"})
+
+
+@router.get("/risco", response_class=HTMLResponse)
+def risco_page(request: Request, session: SessionDep) -> HTMLResponse:
+    """Análise estatística: volatilidade, drawdown, correlação, cenários e metas."""
+    ensure_classes(session)
+    summary = portfolio.summary(session)
+    report = analytics.build_risk_report(session, monthly_contribution=DEFAULT_CONTRIBUTION)
+    context = {
+        "active_nav": "risco",
+        "r": report,
+        "aporte_mensal": int(DEFAULT_CONTRIBUTION),
+        "taxa_anual": 10,
+        "last_quote_at": summary.last_quote_at,
+    }
+    return templates.TemplateResponse(request, "risco.html", context)
+
+
+@router.post("/risco/atualizar", response_class=HTMLResponse)
+def risco_atualizar(request: Request) -> HTMLResponse:
+    """Dispara o download em lote do histórico (2 anos) em background."""
+    state = jobs.trigger("risk", scheduler.run_risk_job, "Baixando histórico de 2 anos (B3)...")
+    return templates.TemplateResponse(request, "partials/job_status.html", {"job": state})
+
+
+@router.post("/risco/metas", response_class=HTMLResponse)
+def risco_simular_metas(
+    request: Request,
+    session: SessionDep,
+    aporte_mensal: Annotated[str, Form()],
+    taxa_anual: Annotated[str, Form()],
+) -> HTMLResponse:
+    """Recalcula a projeção de tempo para metas de patrimônio via HTMX."""
+    summary = portfolio.summary(session)
+    goals = analytics.project_goals(
+        summary.total,
+        monthly_contribution=_parse_number(aporte_mensal),
+        annual_rate_pct=_parse_number(taxa_anual),
+    )
+    return templates.TemplateResponse(request, "partials/goals_table.html", {"goals": goals})
 
 
 @router.get("/aporte", response_class=HTMLResponse)

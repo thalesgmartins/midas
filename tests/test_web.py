@@ -14,6 +14,7 @@ def test_rotas_principais_respondem_200() -> None:
         for url in (
             "/",
             "/estatisticas",
+            "/risco",
             "/valuation",
             "/screener",
             "/aporte",

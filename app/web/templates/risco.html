@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}Risco & Cenários — Midas{% endblock %}
+{% block content %}
+  <!-- Cabeçalho + Botão de Histórico -->
+  <section class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-xl font-semibold text-offwhite flex items-center gap-2">
+        <i class="mdi mdi-shield-check-outline text-sage"></i>
+        <span>Estatística, Risco & Cenários</span>
+      </h1>
+      <p class="text-xs text-muted mt-1">
+        Faixas prováveis de oscilação, diversificação real (correlação) e projeção de metas — sem achismo.
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="risk-msg"></div>
+      <button hx-post="/risco/atualizar" hx-target="#risk-msg"
+              class="inline-flex items-center gap-2 bg-marine hover:bg-marine/90 text-offwhite rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
+        <i class="mdi mdi-history text-base leading-none"></i>
+        <span>Atualizar histórico (2 anos)</span>
+      </button>
+    </div>
+  </section>
+
+  {% if not r.has_history %}
+    <div class="bg-surface border border-white/[0.08] rounded-2xl p-8 text-center mb-6">
+      <i class="mdi mdi-chart-bell-curve-cumulative text-4xl text-marine"></i>
+      <h2 class="text-base font-semibold text-offwhite mt-3">Histórico de preços ainda não carregado</h2>
+      <p class="text-xs text-muted mt-1 max-w-md mx-auto">
+        Clique em <strong>Atualizar histórico (2 anos)</strong> acima para baixar em lote os fechamentos da B3 + IBOV e calcular volatilidade, correlação e cenários.
+      </p>
+    </div>
+  {% else %}
+    <!-- 4 KPIs de Risco -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
+      <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+        <div class="text-xs text-muted">Volatilidade Anual da Carteira</div>
+        <div class="num text-2xl font-semibold text-offwhite mt-2">{{ r.portfolio_vol_pct|pct(1) }}</div>
+        <div class="text-xs text-sage mt-1.5">
+          Diversificação reduziu <span class="num font-medium">-{{ r.diversification_benefit_pct|pct(1) }}</span>
+        </div>
+      </div>
+
+      <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+        <div class="text-xs text-muted">Drawdown Máximo (2 anos)</div>
+        <div class="num text-2xl font-semibold text-rose-400 mt-2">{{ r.portfolio_max_drawdown_pct|pct(1) }}</div>
+        <div class="text-xs text-muted mt-1.5">Pior queda topo-a-fundo combinada</div>
+      </div>
+
+      <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+        <div class="text-xs text-muted">VaR 30 dias (95% de confiança)</div>
+        <div class="num text-2xl font-semibold text-amber-400 mt-2">-{{ r.var_95_30d_brl|brl }}</div>
+        <div class="text-xs text-muted mt-1.5">
+          (<span class="num">{{ r.var_95_30d_pct|pct(1) }}</span>) limite em 95% dos meses
+        </div>
+      </div>
+
+      <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+        <div class="text-xs text-muted">Beta vs. Ibovespa</div>
+        <div class="num text-2xl font-semibold text-marine mt-2">
+          {{ '%.2f'|format(r.portfolio_beta)|replace('.', ',') if r.portfolio_beta is not none else '—' }}
+        </div>
+        <div class="text-xs text-muted mt-1.5">
+          Base: <span class="num text-offwhite">{{ r.days_analyzed }}</span> pregões
+        </div>
+      </div>
+    </section>
+
+    <!-- Cone de Cenários (30d, 90d, 12m) -->
+    <section class="bg-evergreen border border-white/[0.08] rounded-2xl p-6 mb-6">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div>
+          <h2 class="text-sm font-semibold text-offwhite flex items-center gap-2">
+            <i class="mdi mdi-chart-timeline-variant text-sage text-base"></i>
+            <span>Cone de Cenários (Faixa Provável — Bootstrap Histórico)</span>
+          </h2>
+          <p class="text-xs text-muted mt-0.5">
+            Patrimônio atual de <span class="num text-offwhite">{{ r.total_value|brl }}</span> projetado sem novos aportes (percentis 10%, 50% e 90%).
+          </p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for sc in r.scenarios %}
+        <div class="bg-ink/65 border border-white/[0.08] rounded-xl p-4">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-semibold text-offwhite">{{ sc.label }}</span>
+            <span class="text-[11px] text-muted">{{ sc.trading_days }} pregões</span>
+          </div>
+          <div class="space-y-2 text-xs">
+            <div class="flex justify-between items-baseline">
+              <span class="text-rose-400">Pessimista (P10)</span>
+              <span class="num text-offwhite font-medium">{{ sc.p10_value|brl }} <span class="text-rose-400">({{ '%+.1f%%'|format(sc.p10_pct)|replace('.', ',') }})</span></span>
+            </div>
+            <div class="flex justify-between items-baseline py-1 border-y border-white/[0.06]">
+              <span class="text-marine font-medium">Mediana (P50)</span>
+              <span class="num text-offwhite font-semibold">{{ sc.p50_value|brl }} <span class="text-marine">({{ '%+.1f%%'|format(sc.p50_pct)|replace('.', ',') }})</span></span>
+            </div>
+            <div class="flex justify-between items-baseline">
+              <span class="text-sage">Otimista (P90)</span>
+              <span class="num text-offwhite font-medium">{{ sc.p90_value|brl }} <span class="text-sage">({{ '%+.1f%%'|format(sc.p90_pct)|replace('.', ',') }})</span></span>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Correlação (Matriz + Pares Críticos) -->
+    <section class="grid grid-cols-1 xl:grid-cols-12 gap-5 mb-6">
+      <div class="xl:col-span-8 bg-surface border border-white/[0.08] rounded-2xl p-6 overflow-x-auto">
+        <h2 class="text-sm font-semibold text-offwhite mb-3 flex items-center gap-2">
+          <i class="mdi mdi-grid text-marine"></i>
+          <span>Matriz de Correlação (Top {{ r.corr_tickers|length }} ativos)</span>
+        </h2>
+        <table class="w-full text-[11px] num">
+          <thead>
+            <tr>
+              <th class="p-1.5 text-left text-muted">Ativo</th>
+              {% for t in r.corr_tickers %}
+              <th class="p-1.5 text-center text-muted font-medium">{{ t }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in r.corr_matrix %}
+            {% set row_idx = loop.index0 %}
+            <tr>
+              <td class="p-1.5 font-semibold text-offwhite">{{ r.corr_tickers[row_idx] }}</td>
+              {% for val in row %}
+              <td class="p-1 text-center">
+                {% if loop.index0 == row_idx %}
+                  <span class="block rounded py-1 bg-white/[0.06] text-muted">1,00</span>
+                {% elif val >= 0.60 %}
+                  <span class="block rounded py-1 bg-rose-500/25 text-rose-300 font-medium">{{ '%.2f'|format(val)|replace('.', ',') }}</span>
+                {% elif val >= 0.40 %}
+                  <span class="block rounded py-1 bg-amber-400/20 text-amber-300">{{ '%.2f'|format(val)|replace('.', ',') }}</span>
+                {% elif val <= 0.10 %}
+                  <span class="block rounded py-1 bg-sage/20 text-sage">{{ '%.2f'|format(val)|replace('.', ',') }}</span>
+                {% else %}
+                  <span class="block rounded py-1 bg-deep text-muted">{{ '%.2f'|format(val)|replace('.', ',') }}</span>
+                {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="xl:col-span-4 space-y-5">
+        <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+          <h3 class="text-sm font-semibold text-offwhite mb-3 flex items-center gap-2">
+            <i class="mdi mdi-link-variant text-amber-400"></i>
+            <span>Pares Mais Correlacionados</span>
+          </h3>
+          {% if r.high_corr_pairs %}
+            <ul class="space-y-2 text-xs">
+              {% for p in r.high_corr_pairs %}
+              <li class="flex items-center justify-between py-1 border-b border-white/[0.05] last:border-0">
+                <span class="font-medium text-offwhite">{{ p.ticker_a }} · {{ p.ticker_b }}</span>
+                <span class="num px-2 py-0.5 rounded bg-rose-500/15 text-rose-400">{{ '%.2f'|format(p.corr)|replace('.', ',') }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-xs text-sage">Nenhum par com correlação alta (>= 0,45). Boa diversificação!</p>
+          {% endif %}
+        </div>
+
+        <div class="bg-surface border border-white/[0.08] rounded-2xl p-5">
+          <h3 class="text-sm font-semibold text-offwhite mb-3 flex items-center gap-2">
+            <i class="mdi mdi-shield-star-outline text-sage"></i>
+            <span>Melhores Diversificadores</span>
+          </h3>
+          <ul class="space-y-2 text-xs">
+            {% for p in r.low_corr_pairs %}
+            <li class="flex items-center justify-between py-1 border-b border-white/[0.05] last:border-0">
+              <span class="font-medium text-offwhite">{{ p.ticker_a }} · {{ p.ticker_b }}</span>
+              <span class="num px-2 py-0.5 rounded bg-sage/15 text-sage">{{ '%.2f'|format(p.corr)|replace('.', ',') }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabela de Risco por Ativo -->
+    <section class="bg-surface border border-white/[0.08] rounded-2xl p-6 mb-6 overflow-x-auto">
+      <h2 class="text-sm font-semibold text-offwhite mb-4 flex items-center gap-2">
+        <i class="mdi mdi-pulse text-marine"></i>
+        <span>Risco Histórico por Ativo</span>
+      </h2>
+      <table class="w-full text-sm">
+        <thead class="text-[11px] uppercase tracking-wider text-muted border-b border-white/[0.08]">
+          <tr>
+            <th class="py-2 text-left font-medium">Ativo</th>
+            <th class="py-2 text-right font-medium">Peso</th>
+            <th class="py-2 text-right font-medium">Volatilidade (a.a.)</th>
+            <th class="py-2 text-right font-medium">Drawdown Máx.</th>
+            <th class="py-2 text-right font-medium">Retorno ~12m</th>
+            <th class="py-2 text-right font-medium">Beta vs. IBOV</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-white/[0.06]">
+          {% for a in r.asset_risks %}
+          <tr class="hover:bg-white/[0.02]">
+            <td class="py-2.5 font-semibold text-offwhite">{{ a.ticker }}</td>
+            <td class="py-2.5 text-right num text-muted">{{ a.weight_pct|pct(1) }}</td>
+            <td class="py-2.5 text-right num text-offwhite">{{ a.annual_vol_pct|pct(1) }}</td>
+            <td class="py-2.5 text-right num text-rose-400">{{ a.max_drawdown_pct|pct(1) }}</td>
+            <td class="py-2.5 text-right num {{ 'text-sage' if a.return_12m_pct and a.return_12m_pct >= 0 else 'text-rose-400' }}">
+              {{ ('%+.1f%%'|format(a.return_12m_pct)|replace('.', ',')) if a.return_12m_pct is not none else '—' }}
+            </td>
+            <td class="py-2.5 text-right num text-muted">{{ '%.2f'|format(a.beta_ibov)|replace('.', ',') if a.beta_ibov is not none else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endif %}
+
+  <!-- Projeção de Metas de Patrimônio (sempre visível, interativa via HTMX) -->
+  <section class="bg-surface border border-white/[0.08] rounded-2xl p-6">
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-5">
+      <div>
+        <h2 class="text-sm font-semibold text-offwhite flex items-center gap-2">
+          <i class="mdi mdi-flag-checkered text-sage"></i>
+          <span>Projeção de Metas de Patrimônio</span>
+        </h2>
+        <p class="text-xs text-muted mt-0.5">Estimativa de tempo restante com juros compostos e aportes mensais.</p>
+      </div>
+      <form hx-post="/risco/metas" hx-target="#goals-box" hx-trigger="change, submit" class="flex flex-wrap items-end gap-3">
+        <label class="block">
+          <span class="text-[11px] uppercase tracking-wider text-muted block mb-1">Aporte mensal (R$)</span>
+          <input name="aporte_mensal" value="{{ aporte_mensal }}"
+                 class="num w-32 bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-xl px-3 py-1.5 text-xs text-offwhite">
+        </label>
+        <label class="block">
+          <span class="text-[11px] uppercase tracking-wider text-muted block mb-1">Retorno (% a.a.)</span>
+          <input name="taxa_anual" value="{{ taxa_anual }}"
+                 class="num w-24 bg-deep border border-white/[0.10] focus:border-marine focus:outline-none rounded-xl px-3 py-1.5 text-xs text-offwhite">
+        </label>
+      </form>
+    </div>
+    <div id="goals-box">
+      {% set goals = r.goals %}
+      {% include "partials/goals_table.html" %}
+    </div>
+  </section>
+{% endblock %}
