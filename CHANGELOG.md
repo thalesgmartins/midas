@@ -2,6 +2,15 @@
 
 Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 
+## [0.6.0](https://github.com/thalesgmartins/midas/compare/v0.5.0...v0.6.0) (2026-11-25)
+
+
+### Features
+
+* **auth:** implementar autenticacao exclusiva via Google OAuth 2.0 com allowlist ([ec27914](https://github.com/thalesgmartins/midas/commit/ec279148474285d8c36af82e2c86513da0468f78))
+* **portfolio:** permitir registrar compras do plano de aporte direto na carteira ([dc467bf](https://github.com/thalesgmartins/midas/commit/dc467bf12ee6854ca543f6650f19e37912bc3d79))
+* **ui:** refinar paleta Dark Mode, agrupar navegacao, central de decisao e guias inline ([684c68d](https://github.com/thalesgmartins/midas/commit/684c68dd93258af71eb8e784a7bf9431abc9e9d6))
+
 ## [0.5.0](https://github.com/thalesgmartins/midas/compare/v0.4.0...v0.5.0) (2026-11-25)
 
 
