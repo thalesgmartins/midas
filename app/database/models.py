@@ -1,10 +1,10 @@
 """Modelos persistidos da carteira."""
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 from typing import Optional
 
-from sqlalchemy import Column
+from sqlalchemy import Column, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -131,3 +131,14 @@ class WatchlistAsset(SQLModel, table=True):
     debt_to_equity: float | None = None  # Dívida / PL em % (ex: 120.0 = 120%)
     drawdown_52w: float | None = None  # Queda desde a máxima de 52 semanas em % (negativo)
     updated_at: datetime | None = None
+
+
+class PricePoint(SQLModel, table=True):
+    """Fechamento diário histórico usado para volatilidade, correlação e cenários."""
+
+    __table_args__ = (UniqueConstraint("ticker", "ref_date", name="uq_pricepoint_ticker_date"),)
+
+    id: int | None = Field(default=None, primary_key=True)
+    ticker: str = Field(index=True)
+    ref_date: date = Field(index=True)
+    close: float
