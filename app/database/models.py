@@ -106,3 +106,28 @@ class AssetFundamentals(SQLModel, table=True):
     updated_at: datetime | None = None
 
     asset: Asset | None = Relationship(back_populates="fundamentals")
+
+
+class WatchlistAsset(SQLModel, table=True):
+    """Ativo candidato monitorado no Screener e na Watchlist."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    ticker: str = Field(index=True, unique=True)
+    class_name: str = "Ações"
+    segment: str = ""
+    is_perennial: bool = False
+    in_watchlist: bool = False
+
+    current_price: float | None = None
+    lpa: float | None = None
+    vpa: float | None = None
+    pl: float | None = None
+    pvp: float | None = None
+    roe: float | None = None
+    payout: float | None = None
+    div_12m: float | None = None
+    div_avg_5y: float | None = None
+    profit_margin: float | None = None  # Margem líquida (decimal, ex: 0.15 = 15%)
+    debt_to_equity: float | None = None  # Dívida / PL em % (ex: 120.0 = 120%)
+    drawdown_52w: float | None = None  # Queda desde a máxima de 52 semanas em % (negativo)
+    updated_at: datetime | None = None
