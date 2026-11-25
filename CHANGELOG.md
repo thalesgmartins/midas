@@ -2,6 +2,24 @@
 
 Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 
+## [0.5.0](https://github.com/thalesgmartins/midas/compare/v0.4.0...v0.5.0) (2026-11-25)
+
+
+### Features
+
+* **analytics:** implementar risco, correlacao, cenarios bootstrap e metas ([e9d66ab](https://github.com/thalesgmartins/midas/commit/e9d66abe0ebb2b7f4be5e4302b59c8391604fe38))
+* **db:** adicionar tabela marketevent e configuracoes opcionais de alertas/IA ([f141687](https://github.com/thalesgmartins/midas/commit/f14168753f0d842ddb9dbe94a47c756ac2f7c386))
+* **db:** adicionar tabela pricepoint para historico de fechamentos ([914c779](https://github.com/thalesgmartins/midas/commit/914c7793efd239b64661ccbe172e6c4605779cd9))
+* **events:** implementar monitor CVM (IPE), Fundos.NET (FIIs), Telegram e Gemini opcional ([c472a92](https://github.com/thalesgmartins/midas/commit/c472a9234dc679f3d88a1d073ca687c4372055a7))
+* **ui:** adicionar tela de Eventos CVM & FIIs com filtros HTMX ([c2122cd](https://github.com/thalesgmartins/midas/commit/c2122cd2e82e4253b2187282242676627254482c))
+* **ui:** adicionar tela de Risco & Cenarios com projecao interativa de metas ([7285f38](https://github.com/thalesgmartins/midas/commit/7285f38af02392961099dfac943a4f92402f4b26))
+
+
+### Documentation
+
+* atualizar README e adicionar ADR 002 sobre jobs e agendador ([baa0225](https://github.com/thalesgmartins/midas/commit/baa0225060b3ce005de20a7d08a6a304b08758da))
+* atualizar README para todas as 4 fases e adicionar ADR 003 ([b4fcf79](https://github.com/thalesgmartins/midas/commit/b4fcf799fc8363b3603968bbea8d5aa81050d9eb))
+
 ## [0.4.0](https://github.com/thalesgmartins/midas/compare/v0.3.0...v0.4.0) (2026-11-25)
 
 
