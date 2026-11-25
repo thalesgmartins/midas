@@ -2,6 +2,16 @@
 
 Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 
+## [0.4.0](https://github.com/thalesgmartins/midas/compare/v0.3.0...v0.4.0) (2026-11-25)
+
+
+### Features
+
+* **db:** adicionar tabela watchlistasset com metricas de qualidade ([5b10ef7](https://github.com/thalesgmartins/midas/commit/5b10ef74fa674b700d19e54b0bc3bb38a9218595))
+* **jobs:** paralelizar coleta, jobs em background e agendador automatico ([c099299](https://github.com/thalesgmartins/midas/commit/c099299d247ba0889af5918d9e60f45ae560b661))
+* **screener:** implementar screener B3 com filtros anti-value-trap e watchlist ([2043317](https://github.com/thalesgmartins/midas/commit/2043317a056398b9ccf5f53a79c7649bddd9177c))
+* **ui:** adicionar tela de Screener, progresso HTMX e horario em BRT ([cd42ac4](https://github.com/thalesgmartins/midas/commit/cd42ac4b38aceaa876f28d9c891f458409e237af))
+
 ## [0.3.0](https://github.com/thalesgmartins/midas/compare/v0.2.0...v0.3.0) (2026-11-24)
 
 
